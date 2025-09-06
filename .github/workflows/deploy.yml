@@ -5,11 +5,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Set permissions for GitHub Pages deployment
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -25,9 +27,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4  # Updated to v4
         with:
           version: latest
 
@@ -36,37 +39,40 @@ jobs:
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4  # Updated to v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Install pnpm globally
+        run: npm install -g pnpm
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Create .env file
+      - name: Create environment file
         run: touch .env
 
-      - name: Build
+      - name: Build application
         run: pnpm run build:ci
 
-      # Debug step to check build output
-      - name: List build output
+      - name: Debug build output
         run: |
-          echo "=== Build Output ==="
+          echo "=== Build completed ==="
+          echo "Contents of dist directory:"
           ls -la dist/
-          echo "=== Assets Directory ==="
-          ls -la dist/assets/ || echo "No assets directory"
-          echo "=== Index.html content (first 20 lines) ==="
-          head -20 dist/index.html || echo "No index.html"
+          echo "Contents of dist/assets directory:"
+          ls -la dist/assets/ || echo "No assets directory found"
+          echo "First 10 lines of index.html:"
+          head -10 dist/index.html || echo "No index.html found"
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5  # Updated to v5
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3  # Keep v3 as v4 might not be available yet
         with:
           path: './dist'
 
