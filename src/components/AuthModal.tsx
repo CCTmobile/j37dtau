@@ -84,7 +84,7 @@ export function AuthModal({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         
-        <Tabs value={mode} onValueChange={onSwitchMode} className="w-full">
+        <Tabs value={mode} onValueChange={(value) => onSwitchMode(value as "login" | "signup")} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
