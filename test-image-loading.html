@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Loading Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .image-test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        img { max-width: 300px; max-height: 300px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>Image Loading Test - Rosemama Clothing</h1>
+    <p>Testing if product images load correctly from the database</p>
+
+    <div class="image-test">
+        <h3>Summer Floral Dress</h3>
+        <img src="https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwd29tZW4lMjBmbG9yYWwlMjBkcmVzc3xlbnwxfHx8fDE3NTU4MDQ4NTh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+             alt="Summer Floral Dress"
+             onload="this.parentElement.style.backgroundColor='lightgreen'"
+             onerror="this.parentElement.style.backgroundColor='lightcoral'">
+        <p>Status: <span id="status-floral"></span></p>
+    </div>
+
+    <div class="image-test">
+        <h3>Casual Denim Jacket</h3>
+        <img src="https://images.unsplash.com/photo-1544022613-e87ca75a784a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwZGVuaW0lMjBqYWNrZXR8ZW58MXx8fHwxNzU1ODA0ODYxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+             alt="Casual Denim Jacket"
+             onload="this.parentElement.style.backgroundColor='lightgreen'"
+             onerror="this.parentElement.style.backgroundColor='lightcoral'">
+        <p>Status: <span id="status-denim"></span></p>
+    </div>
+
+    <div class="image-test">
+        <h3>Elegant Evening Gown</h3>
+        <img src="https://images.unsplash.com/photo-1566479179815-d6b91c60b846?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwd29tZW4lMjBldmVuaW5nJTIwZ293bnxlbnwxfHx8fDE3NTU4MDQ4NjJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+             alt="Elegant Evening Gown"
+             onload="this.parentElement.style.backgroundColor='lightgreen'"
+             onerror="this.parentElement.style.backgroundColor='lightcoral'">
+        <p>Status: <span id="status-gown"></span></p>
+    </div>
+
+    <script>
+        // Test placeholder image fallback
+        const testPlaceholder = () => {
+            const placeholderImg = document.createElement('img');
+            placeholderImg.src = 'https://via.placeholder.com/400x300/cccccc/666666?text=No+Image';
+            placeholderImg.onload = () => {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'image-test';
+                testDiv.innerHTML = '<h3>Placeholder Image Test</h3>';
+                testDiv.style.backgroundColor = 'lightgreen';
+                testDiv.appendChild(placeholderImg);
+                document.body.appendChild(testDiv);
+            };
+        };
+
+        // Test all images when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const images = document.querySelectorAll('img');
+            images.forEach((img, index) => {
+                img.addEventListener('load', () => {
+                    const spanId = `status-${['floral', 'denim', 'gown'][index]}`;
+                    document.getElementById(spanId).textContent = '✓ Image loaded successfully';
+                });
+                img.addEventListener('error', () => {
+                    const spanId = `status-${['floral', 'denim', 'gown'][index]}`;
+                    document.getElementById(spanId).textContent = '✗ Failed to load image';
+                });
+            });
+
+            // Test placeholder after 2 seconds
+            setTimeout(testPlaceholder, 2000);
+        });
+    </script>
+</body>
+</html>
