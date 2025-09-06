@@ -2,9 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -19,37 +19,42 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+    
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: ${{ hashFiles('pnpm-lock.yaml') && 'pnpm' || '' }}
+    
+    - name: Install dependencies
+      run: |
+        if [ -f "pnpm-lock.yaml" ]; then
+          echo "Lock file found, installing with frozen-lockfile"
+          pnpm install --frozen-lockfile
+        else
+          echo "No lock file found, generating one"
+          pnpm install
+        fi
+    
+    - name: Build
+      run: pnpm run build
+      env:
+        NODE_ENV: production
+    
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./dist
         
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: |
-          if [ -f "pnpm-lock.yaml" ]; then
-            pnpm install --frozen-lockfile
-          else
-            pnpm install
-          fi
-          
-      - name: Build
-        run: pnpm run build
-        
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist  # or ./build depending on your framework
-          
   deploy:
     environment:
       name: github-pages
