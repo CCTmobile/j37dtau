@@ -6,7 +6,7 @@
       "type": "module",
       "scripts": {
             "dev": "vite",
-            "build": "tsc --noEmit && vite build",
+            "build": "tsc -p tsconfig.client.json --noEmit && vite build",
             "build:ci": "tsc -p tsconfig.client.json --noEmit && vite build",
             "preview": "vite preview",
             "predeploy": "npm run build",
