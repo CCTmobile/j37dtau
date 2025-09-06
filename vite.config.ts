@@ -4,7 +4,8 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  // For custom domain deployment, use root path
+  
+  // Important: Use root path for custom domain
   base: '/',
   
   resolve: {
@@ -15,39 +16,38 @@ export default defineConfig({
   
   build: {
     outDir: 'dist',
-    // Ensure assets are placed in the assets directory
     assetsDir: 'assets',
-    // Generate manifest for better caching
-    manifest: false,
-    // Optimize chunks
+    // Important: Generate clean builds
+    emptyOutDir: true,
+    
     rollupOptions: {
       output: {
-        // Better chunk naming for caching
+        manualChunks: {
+          // Split vendor chunks for better caching
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom']
+        },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        assetFileNames: (assetInfo) => {
-          const info = assetInfo.name?.split('.') || []
-          const ext = info[info.length - 1]
-          
-          // Handle different asset types
-          if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico|webp)$/i.test(assetInfo.name || '')) {
-            return 'assets/images/[name]-[hash][extname]'
-          }
-          if (ext === 'css') {
-            return 'assets/css/[name]-[hash][extname]'
-          }
-          if (/\.(woff2?|eot|ttf|otf)$/i.test(assetInfo.name || '')) {
-            return 'assets/fonts/[name]-[hash][extname]'
-          }
-          
-          return 'assets/[name]-[hash][extname]'
-        }
+        assetFileNames: 'assets/[ext]/[name]-[hash][extname]'
       }
     },
-    // Increase chunk size warning limit (your bundle is >500KB)
+    
+    // Suppress chunk size warnings
     chunkSizeWarningLimit: 1000,
+    
+    // Ensure proper source maps for debugging
+    sourcemap: false
   },
   
-  // Ensure proper asset handling in development
-  publicDir: 'public',
+  // Important: Configure for custom domain
+  server: {
+    port: 3000,
+    host: true
+  },
+  
+  preview: {
+    port: 4173,
+    host: true
+  }
 })
