@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "src/supabase/functions",
+    "src/supabase/functions/**",
+    "src/supabase/**/server/**"
+  ]
+}
