@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
+// Deployed build configuration for GitHub Pages
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: '/j37dtau',
