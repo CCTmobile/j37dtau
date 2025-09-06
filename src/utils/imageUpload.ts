@@ -192,13 +192,13 @@ export class ImageUploadService {
   static async uploadToStorage(
     processedImage: ProcessedImage,
     productId: string,
-    onProgress?: (progress: UploadProgress) => void
+    _onProgress?: (progress: UploadProgress) => void
   ): Promise<{ url: string; thumbnailUrl?: string }> {
     const timestamp = Date.now();
     const fileName = `${productId}/${timestamp}.${processedImage.format}`;
 
     // Upload main image
-    const { data: mainData, error: mainError } = await supabase.storage
+    const { data: _mainData, error: mainError } = await supabase.storage
       .from(this.BUCKET_NAME)
       .upload(fileName, processedImage.optimized, {
         contentType: `image/${processedImage.format}`,
@@ -220,7 +220,7 @@ export class ImageUploadService {
     if (processedImage.thumbnail) {
       const thumbFileName = `${productId}/${timestamp}_thumb.${processedImage.format}`;
 
-      const { data: thumbData, error: thumbError } = await supabase.storage
+      const { data: _thumbData, error: thumbError } = await supabase.storage
         .from(this.BUCKET_NAME)
         .upload(thumbFileName, processedImage.thumbnail, {
           contentType: `image/${processedImage.format}`,
@@ -248,7 +248,7 @@ export class ImageUploadService {
     files: File[],
     productId: string,
     options: ImageUploadOptions = {},
-    onProgress?: (fileIndex: number, progress: UploadProgress) => void,
+    _onProgress?: (fileIndex: number, progress: UploadProgress) => void,
     onFileComplete?: (fileIndex: number, result: { url: string; thumbnailUrl?: string }) => void
   ): Promise<Array<{ url: string; thumbnailUrl?: string; fileName: string }>> {
     const results: Array<{ url: string; thumbnailUrl?: string; fileName: string }> = [];
