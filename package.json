@@ -1,7 +1,8 @@
 {
-  "name": "Rosemama Clothing Fashion E-Commerce App",
-  "version": "0.1.0",
-  "private": true,
+      "name": "Rosemama Clothing Fashion E-Commerce App",
+      "version": "0.1.0",
+      "private": true,
+      "homepage": "https://rosemamaclothing.store",
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -54,6 +55,7 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react-swc": "^3.10.2",
+    "gh-pages": "^6.3.0",
     "typescript": "^5.9.2",
     "vite": "^5.4.19"
   },
