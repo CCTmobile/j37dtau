@@ -1,3 +1,4 @@
+# .github/workflows/deploy.yml
 name: Deploy to GitHub Pages
 
 on:
@@ -5,7 +6,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Set permissions for GitHub Pages deployment
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -17,6 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Build job
   build:
     runs-on: ubuntu-latest
     steps:
@@ -27,55 +29,53 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4  # Updated to v4
+        uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 8
 
       - name: Get pnpm store directory
         shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
-        uses: actions/cache@v4  # Updated to v4
+        uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-      - name: Install pnpm globally
-        run: npm install -g pnpm
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Create environment file
+      - name: Create .env file
         run: touch .env
 
-      - name: Build application
+      - name: Build project
         run: pnpm run build:ci
 
-      - name: Debug build output
+      - name: List build contents (debug)
         run: |
-          echo "=== Build completed ==="
-          echo "Contents of dist directory:"
+          echo "Build completed. Contents:"
           ls -la dist/
-          echo "Contents of dist/assets directory:"
-          ls -la dist/assets/ || echo "No assets directory found"
-          echo "First 10 lines of index.html:"
-          head -10 dist/index.html || echo "No index.html found"
+          echo "Index.html exists:" 
+          test -f dist/index.html && echo "✅ Yes" || echo "❌ No"
+          echo "Assets directory:"
+          ls -la dist/assets/ 2>/dev/null || echo "No assets directory"
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5  # Updated to v5
+        uses: actions/configure-pages@v5
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3  # Keep v3 as v4 might not be available yet
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
+          # Upload entire dist directory
           path: './dist'
 
+  # Deployment job
   deploy:
     environment:
       name: github-pages
