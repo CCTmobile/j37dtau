@@ -1,10 +1,23 @@
 {
       "name": "rosemama-clothing",
-      "version": "0.1.0",
+      "homepage": "https://rosemamaclothing.store",      
       "private": true,
-      "homepage": "https://rosemamaclothing.store",
+      "version": "0.1.0",
       "type": "module",
+
+"scripts": {
+            "dev": "vite",
+            "build": "tsc --noEmit && vite build",
+            "build:ci": "tsc -p tsconfig.client.json --noEmit && vite build",
+            "preview": "vite preview",
+            "predeploy": "npm run build",
+            "deploy": "gh-pages -d dist"
+      },
+
       "dependencies": {
+            "@tailwindcss/vite": "^4.0.0",
+            "emailjs-com": "^3.2.0",
+            "tailwindcss": "^4.0.0",
             "@radix-ui/react-accordion": "^1.2.3",
             "@radix-ui/react-alert-dialog": "^1.1.6",
             "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -56,16 +69,15 @@
             "@types/react": "^19.1.12",
             "@types/react-dom": "^19.1.9",
             "@vitejs/plugin-react-swc": "^3.10.2",
-            "gh-pages": "^6.3.0",
+           
             "typescript": "^5.9.2",
-            "vite": "^5.4.19"
-      },
-      "scripts": {
-            "dev": "vite",
-            "build": "tsc --noEmit && vite build",
-            "build:ci": "tsc -p tsconfig.client.json --noEmit && vite build",
-            "preview": "vite preview",
-            "predeploy": "npm run build",
-            "deploy": "gh-pages -d dist"
+            "@vitejs/plugin-react": "^4.3.1",
+            "eslint": "^8.57.0",
+            "eslint-plugin-react": "^7.34.3",
+            "eslint-plugin-react-hooks": "^4.6.2",
+            "eslint-plugin-react-refresh": "^0.4.7",
+            "gh-pages": "^6.3.0",
+            "vite": "^6.1.0"
       }
+      
 }
