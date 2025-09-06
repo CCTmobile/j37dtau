@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Separator } from './ui/separator';
 import { Checkbox } from './ui/checkbox';
-import { Eye, EyeOff, Mail, Lock, User, Phone, Facebook, Apple } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { Eye, EyeOff, Mail, Lock, User as UserIcon, Phone, Apple } from 'lucide-react';
+import { toast } from 'sonner';
 import type { User } from '../App';
 
 interface AuthProps {
@@ -191,8 +191,8 @@ export function Auth({ onLogin }: AuthProps) {
                   <Checkbox
                     id="remember"
                     checked={loginForm.rememberMe}
-                    onCheckedChange={(checked) => 
-                      setLoginForm(prev => ({ ...prev, rememberMe: checked as boolean }))
+                    onCheckedChange={(checked: boolean) =>
+                      setLoginForm(prev => ({ ...prev, rememberMe: checked }))
                     }
                   />
                   <Label htmlFor="remember" className="text-sm">
@@ -215,7 +215,7 @@ export function Auth({ onLogin }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="signup-name">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-name"
                     type="text"
@@ -304,8 +304,8 @@ export function Auth({ onLogin }: AuthProps) {
                 <Checkbox
                   id="terms"
                   checked={signupForm.agreeToTerms}
-                  onCheckedChange={(checked) => 
-                    setSignupForm(prev => ({ ...prev, agreeToTerms: checked as boolean }))
+                  onCheckedChange={(checked: boolean) =>
+                    setSignupForm(prev => ({ ...prev, agreeToTerms: checked }))
                   }
                 />
                 <Label htmlFor="terms" className="text-sm">
