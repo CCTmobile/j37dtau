@@ -108,19 +108,24 @@ const SELECT_PREFERENCES: SelectPreference[] = [
     label: 'Language',
     options: [
       { value: 'en', label: 'English' },
-      { value: 'es', label: 'Spanish' },
-      { value: 'fr', label: 'French' },
-      { value: 'de', label: 'German' }
+      { value: 'af', label: 'Afrikaans' },
+      { value: 'zu', label: 'isiZulu' },
+      { value: 'xh', label: 'isiXhosa' },
+      { value: 'tn', label: 'Setswana' },
+      { value: 'st', label: 'Sesotho' },
+      { value: 've', label: 'Tshivenda' },
+      { value: 'ts', label: 'Xitsonga' }
     ]
   },
   {
     key: 'timezone',
     label: 'Timezone',
     options: [
-      { value: 'UTC+2', label: 'UTC+2 (South Africa)' },
-      { value: 'UTC+0', label: 'UTC+0 (London)' },
-      { value: 'UTC-5', label: 'UTC-5 (New York)' },
-      { value: 'UTC+8', label: 'UTC+8 (Singapore)' }
+      { value: 'UTC+3', label: 'UTC+3 (Nairobi, Kenya)' },
+      { value: 'UTC+2', label: 'UTC+2 (Johannesburg, South Africa)' },
+      { value: 'UTC+1', label: 'UTC+1 (Lagos, Nigeria)' },
+      { value: 'UTC+0', label: 'UTC+0 (Dakar, Senegal)' },
+      { value: 'UTC-1', label: 'UTC-1 (Cape Verde)' }
     ]
   },
   {
@@ -424,7 +429,10 @@ export function AdminAccountSettings() {
                   </div>
                   <p className="text-muted-foreground">{user.email}</p>
                   <div className="flex items-center gap-4 mt-2">
-                    <span className="text-sm">Member since 2024</span>
+                    <span className="text-sm">Member since {user.created_at
+                      ? new Date(user.created_at).getFullYear()
+                      : '2024'
+                    }</span>
                     <span className="text-sm text-muted-foreground">Last login: Today</span>
                   </div>
                 </div>

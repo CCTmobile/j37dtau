@@ -30,7 +30,7 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
     city: '',
     state: '',
     zipCode: '',
-    country: 'United States'
+    country: 'South Africa'
   });
 
   const [paymentMethod, setPaymentMethod] = useState('cash-on-delivery');
@@ -196,24 +196,29 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                     />
                   </div>
                   <div>
-                    <Label htmlFor="state">State</Label>
+                    <Label htmlFor="state">Province</Label>
                     <Select
                       value={shippingForm.state}
                       onValueChange={(value: string) => setShippingForm(prev => ({ ...prev, state: value }))}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select state" />
+                        <SelectValue placeholder="Select province" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="CA">California</SelectItem>
-                        <SelectItem value="NY">New York</SelectItem>
-                        <SelectItem value="TX">Texas</SelectItem>
-                        <SelectItem value="FL">Florida</SelectItem>
+                        <SelectItem value="EC">Eastern Cape</SelectItem>
+                        <SelectItem value="FS">Free State</SelectItem>
+                        <SelectItem value="GP">Gauteng</SelectItem>
+                        <SelectItem value="KZN">KwaZulu-Natal</SelectItem>
+                        <SelectItem value="LP">Limpopo</SelectItem>
+                        <SelectItem value="MP">Mpumalanga</SelectItem>
+                        <SelectItem value="NC">Northern Cape</SelectItem>
+                        <SelectItem value="NW">North West</SelectItem>
+                        <SelectItem value="WC">Western Cape</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="zipCode">ZIP Code</Label>
+                    <Label htmlFor="zipCode">Postal Code</Label>
                     <Input
                       id="zipCode"
                       value={shippingForm.zipCode}

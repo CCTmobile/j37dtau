@@ -114,7 +114,10 @@ export function Profile({ onLogout }: ProfileProps) {
                   ✨ {user.points} points
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  Member since 2024
+                  Member since {user.created_at
+                    ? new Date(user.created_at).getFullYear()
+                    : '2024'
+                  }
                 </span>
               </div>
             </div>

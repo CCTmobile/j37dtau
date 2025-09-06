@@ -29,6 +29,8 @@ export type User = {
   phone?: string;
   membershipTier: 'Bronze' | 'Silver' | 'Gold';
   points: number;
+  created_at?: string;
+  last_login?: string;
   preferences: {
     sizes: string[];
     colors: string[];

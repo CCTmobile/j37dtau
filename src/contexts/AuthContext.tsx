@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           phone: (userProfile as any)?.phone ?? (authUser.user_metadata as any)?.phone ?? undefined,
           membershipTier: 'Bronze', // Default tier
           points: 0, // Default points
+          created_at: (userProfile as any)?.created_at,
           preferences: {
             sizes: [],
             colors: [],
