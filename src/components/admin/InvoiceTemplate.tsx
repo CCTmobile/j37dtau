@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Separator } from '../ui/separator';
-import { Download, Printer, X } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Download, Printer, X, FileText, User, Package, CreditCard, Receipt } from 'lucide-react';
 import { Order, InvoiceTemplateProps } from '../../types/invoice';
 import {
   formatCurrency,
@@ -318,20 +319,133 @@ export function InvoiceTemplate({
       {/* Enhanced Header */}
       <InvoiceHeader />
 
-      {/* Invoice Details - Modern Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-        <InvoiceDetailsCard order={order} />
-        <CustomerDetailsCard order={order} formattedAddress={formattedAddress} />
-      </div>
+      {/* Collapsible Invoice Sections */}
+      <Accordion type="multiple" defaultValue={["invoice-details", "customer-details", "order-items", "payment-method", "order-summary"]} className="space-y-6">
+        {/* Invoice Details Section */}
+        <AccordionItem value="invoice-details" className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30">
+          <AccordionTrigger className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:no-underline hover:bg-gradient-to-r hover:from-blue-700 hover:to-blue-800">
+            <div className="flex items-center">
+              <FileText className="w-6 h-6 mr-3" />
+              <span className="text-xl font-bold">Invoice Details</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex justify-between items-center py-3 px-4 bg-white/60 rounded-lg border border-gray-200">
+                  <span className="text-gray-700 font-semibold">Invoice Number</span>
+                  <span className="font-bold text-gray-900 text-lg">{generateInvoiceNumber(order.order_id)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 px-4 bg-white/60 rounded-lg border border-gray-200">
+                  <span className="text-gray-700 font-semibold">Order ID</span>
+                  <span className="font-semibold text-gray-800">{order.order_id}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 px-4 bg-white/60 rounded-lg border border-gray-200">
+                  <span className="text-gray-700 font-semibold">Invoice Date</span>
+                  <span className="text-gray-800 font-medium">{formatDate(order.order_date)}</span>
+                </div>
+                <div className="flex justify-between items-center py-3 px-4 bg-white/60 rounded-lg border border-gray-200">
+                  <span className="text-gray-700 font-semibold">Status</span>
+                  <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${statusStyles[order.status]} transition-colors`}>
+                    {capitalizeFirst(order.status)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Order Items Table */}
-      <OrderItemsComponent order={order} />
+        {/* Customer Details Section */}
+        <AccordionItem value="customer-details" className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-white via-gray-50/30 to-blue-50/30">
+          <AccordionTrigger className="px-6 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:no-underline hover:bg-gradient-to-r hover:from-purple-700 hover:to-purple-800">
+            <div className="flex items-center">
+              <User className="w-6 h-6 mr-3" />
+              <span className="text-xl font-bold">Bill To</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="pt-4">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{order.customer_name}</h3>
+                <p className="text-gray-600 font-medium">{order.customer_email}</p>
+              </div>
+              {formattedAddress ? (
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start">
+                    <svg className="w-5 h-5 mr-3 text-gray-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 font-medium">{formattedAddress.address}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-3 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 font-medium">
+                      {formattedAddress.city}{formattedAddress.region ? `, ${formattedAddress.region}` : ''}{formattedAddress.postalCode ? ` ${formattedAddress.postalCode}` : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-3 text-pink-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 font-medium">{formattedAddress.country}</span>
+                  </div>
+                  {formattedAddress.phone && (
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 mr-3 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                      </svg>
+                      <span className="text-blue-600 font-semibold">{formatPhoneNumber(formattedAddress.phone)}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">No address information available</p>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Payment Method and Summary - Modern Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-        <PaymentMethodCard order={order} />
-        <OrderSummaryCard order={order} />
-      </div>
+        {/* Order Items Section */}
+        <AccordionItem value="order-items" className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-white via-gray-50/30 to-blue-50/30">
+          <AccordionTrigger className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:no-underline hover:bg-gradient-to-r hover:from-indigo-700 hover:to-indigo-800">
+            <div className="flex items-center">
+              <Package className="w-6 h-6 mr-3" />
+              <span className="text-xl font-bold">Order Items</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <OrderItemsComponent order={order} />
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Payment Method Section */}
+        <AccordionItem value="payment-method" className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-white via-gray-50/30 to-green-50/30">
+          <AccordionTrigger className="px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white hover:no-underline hover:bg-gradient-to-r hover:from-green-700 hover:to-green-800">
+            <div className="flex items-center">
+              <CreditCard className="w-6 h-6 mr-3" />
+              <span className="text-xl font-bold">Payment Method</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <PaymentMethodCard order={order} />
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Order Summary Section */}
+        <AccordionItem value="order-summary" className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-white via-gray-50/30 to-blue-50/30">
+          <AccordionTrigger className="px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:no-underline hover:bg-gradient-to-r hover:from-blue-700 hover:to-purple-700">
+            <div className="flex items-center">
+              <Receipt className="w-6 h-6 mr-3" />
+              <span className="text-xl font-bold">Order Summary</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <OrderSummaryCard order={order} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Enhanced Footer */}
       <InvoiceFooter />
