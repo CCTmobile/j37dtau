@@ -11,19 +11,13 @@ import { toast } from 'sonner';
 import { getRecentOrders, getAllOrders, updateOrderStatus } from '../../utils/supabase/client';
 import { getStatusColor } from './constants';
 import { generateInvoicePDFSimple as generateInvoicePDF, printInvoice, viewInvoiceInModal } from '../../utils/pdfUtilsSimple';
+import { Order as InvoiceOrder } from '../../types/invoice';
 
 interface OrdersTableProps {
   showActions?: boolean;
 }
 
-interface Order {
-  order_id: string;
-  customer_email: string;
-  customer_name: string;
-  amount: number;
-  status: string;
-  order_date: string;
-}
+
 
 // Enhanced Order interface
 interface EnhancedOrder {
@@ -153,7 +147,13 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
   // PDF action handlers
   const handlePrintInvoice = async (order: EnhancedOrder) => {
     try {
-      await printInvoice(order);
+      // Cast to proper Order type for the function call
+      const orderForPrint: InvoiceOrder = {
+        ...order,
+        status: order.status as InvoiceOrder['status'],
+        payment_method: order.payment_method as InvoiceOrder['payment_method']
+      };
+      await printInvoice(orderForPrint);
       toast.success('Invoice opened for printing');
     } catch (error) {
       console.error('Error printing invoice:', error);
@@ -163,7 +163,13 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
 
   const handleDownloadPDF = async (order: EnhancedOrder) => {
     try {
-      await generateInvoicePDF(order);
+      // Cast to proper Order type for the function call
+      const orderForPDF: InvoiceOrder = {
+        ...order,
+        status: order.status as InvoiceOrder['status'],
+        payment_method: order.payment_method as InvoiceOrder['payment_method']
+      };
+      await generateInvoicePDF(orderForPDF);
       toast.success('PDF downloaded successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -173,7 +179,13 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
 
   const handleViewInvoice = async (order: EnhancedOrder) => {
     try {
-      await viewInvoiceInModal(order);
+      // Cast to proper Order type for the function call
+      const orderForView: InvoiceOrder = {
+        ...order,
+        status: order.status as InvoiceOrder['status'],
+        payment_method: order.payment_method as InvoiceOrder['payment_method']
+      };
+      await viewInvoiceInModal(orderForView);
     } catch (error) {
       console.error('Error viewing invoice:', error);
       toast.error('Failed to view invoice');

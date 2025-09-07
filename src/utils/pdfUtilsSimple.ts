@@ -1,22 +1,10 @@
 import jsPDF from 'jspdf';
-
-interface OrderData {
-  id: string;
-  order_id: string;
-  customer_name: string;
-  customer_email: string;
-  amount: number;
-  status: string;
-  order_date: string;
-  shipping_address?: any;
-  order_items?: any[];
-  payment_method?: string;
-}
+import { Order } from '../types/invoice';
 
 /**
  * Generate PDF invoice using pure jsPDF methods (no html2canvas)
  */
-export const generateInvoicePDFSimple = async (order: OrderData): Promise<void> => {
+export const generateInvoicePDFSimple = async (order: Order): Promise<void> => {
   try {
     const pdf = new jsPDF();
     let yPosition = 20;
@@ -235,7 +223,7 @@ export const generateInvoicePDFSimple = async (order: OrderData): Promise<void> 
 /**
  * Helper function to calculate subtotal
  */
-const calculateSubtotal = (order: OrderData): number => {
+const calculateSubtotal = (order: Order): number => {
   if (!order.order_items) return order.amount;
   return order.order_items.reduce((total: number, item: any) =>
     total + (item.quantity * item.price_at_purchase), 0
@@ -252,7 +240,7 @@ const formatCurrency = (amount: number): string => {
 /**
  * Print the invoice directly (unchanged)
  */
-export const printInvoice = async (order: OrderData): Promise<void> => {
+export const printInvoice = async (order: Order): Promise<void> => {
   try {
     // Create a new window for printing
     const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -408,7 +396,7 @@ export const printInvoice = async (order: OrderData): Promise<void> => {
 /**
  * Show invoice in a modal for viewing
  */
-export const viewInvoiceInModal = async (order: OrderData): Promise<void> => {
+export const viewInvoiceInModal = async (order: Order): Promise<void> => {
   const html = `
     <div style="max-width: 800px; margin: 0 auto; padding: 30px; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
       <!-- Modern Header -->
