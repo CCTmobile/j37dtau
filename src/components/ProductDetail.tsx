@@ -284,14 +284,14 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
               <Truck className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm font-medium">Free Shipping</p>
-                <p className="text-xs text-muted-foreground">Orders over R100</p>
+                <p className="text-xs text-muted-foreground">Orders over R2500</p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 bg-secondary/30 rounded-lg">
               <RotateCcw className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm font-medium">Easy Returns</p>
-                <p className="text-xs text-muted-foreground">30 day policy</p>
+                <p className="text-sm font-medium">Collections</p>
+                <p className="text-xs text-muted-foreground">Curated fashion</p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 bg-secondary/30 rounded-lg">

@@ -250,7 +250,7 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
           <div className="text-center bg-secondary/30 dark:bg-secondary/10 rounded-xl p-4 md:p-6">
             <div className="text-3xl mb-3">🚚</div>
             <h4 className="font-semibold text-foreground mb-2">Free Shipping</h4>
-            <p className="text-sm text-muted-foreground">Free delivery on orders over R500</p>
+            <p className="text-sm text-muted-foreground">Free delivery on orders over R2500</p>
           </div>
 
           <div className="text-center bg-secondary/30 dark:bg-secondary/10 rounded-xl p-4 md:p-6">
@@ -260,15 +260,15 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
           </div>
 
           <div className="text-center bg-secondary/30 dark:bg-secondary/10 rounded-xl p-4 md:p-6">
-            <div className="text-3xl mb-3">↩️</div>
-            <h4 className="font-semibold text-foreground mb-2">Easy Returns</h4>
-            <p className="text-sm text-muted-foreground">30-day hassle-free returns</p>
+            <div className="text-3xl mb-3">🛍️</div>
+            <h4 className="font-semibold text-foreground mb-2">Curated Collections</h4>
+            <p className="text-sm text-muted-foreground">Exclusive fashion pieces selected just for you</p>
           </div>
 
           <div className="text-center bg-secondary/30 dark:bg-secondary/10 rounded-xl p-4 md:p-6">
             <div className="text-3xl mb-3">👑</div>
             <h4 className="font-semibold text-foreground mb-2">Premium Quality</h4>
-            <p className="text-sm text-muted-foreground">Carefully curated fashion items</p>
+            <p className="text-sm text-muted-foreground">curated fashion</p>
           </div>
         </div>
       </div>
@@ -308,7 +308,7 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
                   <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground italic mb-3">"Love the personalized recommendations and easy returns."</p>
+              <p className="text-sm text-muted-foreground italic mb-3">"Love the personalized recommendations and Curated Collections."</p>
               <p className="font-semibold text-foreground">- Lisa K.</p>
             </div>
           </div>

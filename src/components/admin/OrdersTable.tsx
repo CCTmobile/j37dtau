@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
-import { Loader2, Eye, Truck, CheckCircle, Package, DollarSign, User, MapPin, Calendar, CreditCard } from 'lucide-react';
+import { Loader2, Eye, Truck, CheckCircle, Package, DollarSign, User, MapPin, Calendar, CreditCard, FileText, Download, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRecentOrders, getAllOrders, updateOrderStatus } from '../../utils/supabase/client';
 import { getStatusColor } from './constants';
+import { generateInvoicePDFSimple as generateInvoicePDF, printInvoice, viewInvoiceInModal } from '../../utils/pdfUtilsSimple';
 
 interface OrdersTableProps {
   showActions?: boolean;
@@ -147,6 +148,36 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+
+  // PDF action handlers
+  const handlePrintInvoice = async (order: EnhancedOrder) => {
+    try {
+      await printInvoice(order);
+      toast.success('Invoice opened for printing');
+    } catch (error) {
+      console.error('Error printing invoice:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to print invoice');
+    }
+  };
+
+  const handleDownloadPDF = async (order: EnhancedOrder) => {
+    try {
+      await generateInvoicePDF(order);
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const handleViewInvoice = async (order: EnhancedOrder) => {
+    try {
+      await viewInvoiceInModal(order);
+    } catch (error) {
+      console.error('Error viewing invoice:', error);
+      toast.error('Failed to view invoice');
+    }
   };
 
   if (loading) {
@@ -364,6 +395,47 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
                                   No further actions available for this order status.
                                 </p>
                               )}
+                            </CardContent>
+                          </Card>
+
+                          {/* Invoice Actions */}
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                <FileText className="h-5 w-5" />
+                                Invoice Actions
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex flex-wrap gap-3">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleViewInvoice(selectedOrder)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  View Invoice
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleDownloadPDF(selectedOrder)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Download PDF
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handlePrintInvoice(selectedOrder)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Printer className="h-4 w-4" />
+                                  Print Invoice
+                                </Button>
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-3">
+                                Generate professional invoices for your orders. You can view them in your browser, download as PDF files, or print them directly.
+                              </p>
                             </CardContent>
                           </Card>
                         </div>

@@ -207,10 +207,10 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
                 <span>R{total.toFixed(2)}</span>
               </div>
 
-              {subtotal < 100 && (
+              {subtotal < 2500 && (
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <p className="text-sm text-blue-600">
-                    Add R{(100 - subtotal).toFixed(2)} more for FREE shipping!
+                    Add R{(2500 - subtotal).toFixed(2)} more for FREE shipping!
                   </p>
                 </div>
               )}
