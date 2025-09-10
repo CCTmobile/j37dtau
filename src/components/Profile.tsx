@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserOrders } from '../utils/supabase/client';
 import { generateInvoicePDFSimple as generateInvoicePDF, printInvoice, viewInvoiceInModal } from '../utils/pdfUtilsSimple';
+import { VerificationBanner } from './VerificationBanner';
 
 interface ProfileProps {
   onLogout: () => void;
@@ -186,6 +187,9 @@ export function Profile({ onLogout }: ProfileProps) {
 
   return (
     <div className="container mx-auto px-6 py-6 max-w-2xl">
+      {/* Email Verification Banner */}
+      <VerificationBanner variant="card" className="mb-4" showDismiss />
+      
       {/* Profile Header */}
       <Card className="mb-6">
         <CardContent className="p-6">

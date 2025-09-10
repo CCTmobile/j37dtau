@@ -229,6 +229,77 @@ export const createOrderFromCart = async (shippingAddress: any) => {
   }
 };
 
+// Helper function to create order for guest users or cart items
+export const createGuestOrder = async (
+  cartItems: any[], 
+  shippingAddress: any, 
+  customerInfo: { email: string; firstName: string; lastName: string; phone: string },
+  createAccount: boolean = false,
+  password?: string
+) => {
+  try {
+    let userId = null;
+
+    // If user wants to create account, sign them up first
+    if (createAccount && password) {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: customerInfo.email,
+        password: password,
+        options: {
+          data: {
+            name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+            phone: customerInfo.phone
+          }
+        }
+      });
+
+      if (authError) {
+        console.warn('Account creation failed, proceeding as guest:', authError);
+      } else {
+        userId = authData.user?.id;
+      }
+    }
+
+    // Create order directly in the orders table
+    const orderData = {
+      user_id: userId, // null for guest orders
+      status: 'pending',
+      total_amount: cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+      shipping_address: shippingAddress,
+      customer_email: customerInfo.email,
+      customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+      customer_phone: customerInfo.phone
+    };
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert(orderData as any) // Type assertion to bypass strict typing
+      .select()
+      .single();
+
+    if (orderError) throw orderError;
+
+    // Create order items
+    const orderItems = cartItems.map(item => ({
+      order_id: (order as any).id,
+      product_id: item.productId,
+      quantity: item.quantity,
+      price_at_purchase: item.product.price
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems as any); // Type assertion to bypass strict typing
+
+    if (itemsError) throw itemsError;
+
+    return (order as any).id;
+  } catch (error) {
+    console.error('Error creating guest order:', error);
+    return null;
+  }
+};
+
 // Helper function to get user's orders
 export const getUserOrders = async () => {
   try {

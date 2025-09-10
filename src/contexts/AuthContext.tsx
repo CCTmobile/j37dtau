@@ -8,10 +8,14 @@ type AuthContextType = {
   loading: boolean;
   error: string | null;
   isAdmin: boolean;
+  isEmailVerified: boolean;
+  pendingVerification: boolean;
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string, name: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
+  resendVerification: () => Promise<boolean>;
+  checkVerificationStatus: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +25,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
   const isFetchingRef = useRef(false);
   const isLoggingOutRef = useRef(false);
 
@@ -46,6 +52,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (authUser) {
         console.log(`fetchUser: Auth user found with ID: ${authUser.id}`);
+        
+        // Check email verification status
+        setIsEmailVerified(authUser.email_confirmed_at !== null);
+        
         // Get user profile from 'users' table
         console.log('fetchUser: Fetching user profile from "users" table');
         const { data: userProfile, error: profileError } = await supabase
@@ -83,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('fetchUser: No auth user found. Clearing user state.');
         setUser(null);
         setIsAdmin(false);
+        setIsEmailVerified(false);
       }
     } catch (err: any) {
       console.error('Error in fetchUser:', err);
@@ -203,6 +214,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Resend email verification
+  const resendVerification = async (): Promise<boolean> => {
+    try {
+      setError(null);
+      setPendingVerification(true);
+      
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error('User not found');
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: authUser.email!
+      });
+      
+      if (error) throw error;
+      return true;
+    } catch (err: any) {
+      console.error('Error resending verification:', err);
+      setError(err.message || 'Failed to resend verification email');
+      return false;
+    } finally {
+      setPendingVerification(false);
+    }
+  };
+
+  // Check verification status manually
+  const checkVerificationStatus = async (): Promise<void> => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        setIsEmailVerified(authUser.email_confirmed_at !== null);
+      }
+    } catch (err) {
+      console.error('Error checking verification status:', err);
+    }
+  };
+
   // Reset logout flag on component mount (after page reload)
   useEffect(() => {
     console.log('AuthContext: Component mounted, resetting logout flag');
@@ -234,7 +282,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchUser]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, isAdmin, signIn, signUp, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      error, 
+      isAdmin, 
+      isEmailVerified, 
+      pendingVerification, 
+      signIn, 
+      signUp, 
+      signOut, 
+      resetPassword, 
+      resendVerification, 
+      checkVerificationStatus 
+    }}>
       {children}
     </AuthContext.Provider>
   );

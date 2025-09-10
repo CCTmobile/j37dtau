@@ -1,5 +1,32 @@
 
-# Rosemama Clothing Fashion E-Commerce App
+# Rosémama Clothing Fashion E-Commerce App
+
+A modern, React-based e-commerce platform for Rosémama Clothing, built with Vite, TypeScript, and Supabase.
+
+## 🛒 Shopping Experience
+
+### Guest Shopping (No Login Required)
+- **Browse without registration**: Customers can explore products immediately
+- **Guest cart**: Add items to cart without creating an account
+- **Local storage**: Cart persists between browser sessions
+- **Checkout options**: 
+  - Proceed as guest with delivery details only
+  - Optionally create account during checkout for tracking and rewards
+- **Seamless transition**: Guest cart merges automatically when user logs in
+
+### Authenticated Shopping
+- **User accounts**: Full profile management with order history
+- **Email verification**: Gentle reminders, never blocks checkout or browsing
+- **Rewards system**: Earn and use points for discounts
+- **Advanced features**: Order tracking and admin dashboard
+
+### Email Verification Flow
+- **No blocking**: Users can shop, checkout, and place orders without verification
+- **Smart prompts**: Gentle reminders in header and profile without disruption
+- **Post-checkout**: New accounts get verification email after successful order
+- **Progressive benefits**: Full features unlock after verification
+
+This is a code bundle for Rosémama Clothing Fashion E-Commerce App. The original project is available at https://www.figma.com/design/67LR8yZUy1TujNdkSd49mL/Rosemama-Clothing-Fashion-E-Commerce-App.osemama Clothing Fashion E-Commerce App
 
 This is a code bundle for Rosemama Clothing Fashion E-Commerce App. The original project is available at https://www.figma.com/design/67LR8yZUy1TujNdkSd49mL/Rosemama-Clothing-Fashion-E-Commerce-App.
 

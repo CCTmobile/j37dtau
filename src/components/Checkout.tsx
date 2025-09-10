@@ -10,22 +10,24 @@ import { Checkbox } from './ui/checkbox';
 import { ArrowLeft, CreditCard, Gift } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
-import { createOrderFromCart } from '../utils/supabase/client';
+import { createOrderFromCart, createGuestOrder } from '../utils/supabase/client';
+import { useCart } from '../contexts/CartContext';
 import type { CartItem, User } from '../App';
 
 interface CheckoutProps {
   items: CartItem[];
-  user: User;
+  user: User | null; // Allow null for guest checkout
   onOrderComplete: () => void;
   onBack: () => void;
 }
 
 export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps) {
+  const { isGuestCart } = useCart(); // Access cart context for clearing after order
   const [shippingForm, setShippingForm] = useState({
-    firstName: user.name.split(' ')[0] || '',
-    lastName: user.name.split(' ')[1] || '',
-    email: user.email,
-    phone: user.phone || '',
+    firstName: user?.name.split(' ')[0] || '',
+    lastName: user?.name.split(' ')[1] || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
     address: '',
     city: '',
     state: '',
@@ -41,11 +43,17 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
     cardholderName: ''
   });
 
+  const [createAccount, setCreateAccount] = useState(false); // For guest users
+  const [accountForm, setAccountForm] = useState({
+    password: '',
+    confirmPassword: ''
+  });
+
   const [usePointsDiscount, setUsePointsDiscount] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const pointsDiscount = usePointsDiscount ? Math.min(user.points * 0.01, subtotal * 0.2) : 0; // 1 cent per point, max 20% off
+  const pointsDiscount = usePointsDiscount && user ? Math.min(user.points * 0.01, subtotal * 0.2) : 0; // 1 cent per point, max 20% off
   const shipping = subtotal > 100 ? 0 : 9.99;
   const tax = (subtotal - pointsDiscount) * 0.08;
   const total = subtotal - pointsDiscount + shipping + tax;
@@ -68,6 +76,21 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
         return;
       }
 
+      // Validate guest account creation if selected
+      if (!user && createAccount) {
+        if (!accountForm.password || accountForm.password.length < 6) {
+          toast.error('Password must be at least 6 characters long');
+          setIsProcessing(false);
+          return;
+        }
+        
+        if (accountForm.password !== accountForm.confirmPassword) {
+          toast.error('Passwords do not match');
+          setIsProcessing(false);
+          return;
+        }
+      }
+
       // Create shipping address object
       const shippingAddress = {
         firstName: shippingForm.firstName,
@@ -81,22 +104,61 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
         country: shippingForm.country,
         paymentMethod: paymentMethod,
         usePointsDiscount: usePointsDiscount,
-        pointsUsed: usePointsDiscount ? Math.min(user.points, Math.floor(subtotal * 20)) : 0
+        pointsUsed: usePointsDiscount && user ? Math.min(user.points, Math.floor(subtotal * 20)) : 0
       };
 
-      // Create order in backend
-      const orderId = await createOrderFromCart(shippingAddress);
+      let orderId;
+
+      if (user) {
+        // Authenticated user - use existing cart-based order creation
+        orderId = await createOrderFromCart(shippingAddress);
+      } else {
+        // Guest user - create order directly from cart items
+        const customerInfo = {
+          email: shippingForm.email,
+          firstName: shippingForm.firstName,
+          lastName: shippingForm.lastName,
+          phone: shippingForm.phone
+        };
+
+        orderId = await createGuestOrder(
+          items, 
+          shippingAddress, 
+          customerInfo, 
+          createAccount, 
+          createAccount ? accountForm.password : undefined
+        );
+      }
 
       if (!orderId) {
         throw new Error('Failed to create order');
       }
 
+      // Clear cart after successful order
+      if (isGuestCart) {
+        // Clear guest cart from localStorage
+        localStorage.removeItem('rosemama_guest_cart');
+      }
+      // For authenticated users, the cart will be cleared by the backend
+
       // Show success message based on payment method
       let successMessage = 'Order placed successfully!';
+      
+      // Add verification reminder for new accounts
+      if (!user && createAccount) {
+        successMessage += ' Check your email to verify your account for order tracking.';
+      }
+      
       if (paymentMethod === 'cash-on-delivery') {
         successMessage = `Order placed successfully! Pay R${total.toFixed(2)} on delivery.`;
+        if (!user && createAccount) {
+          successMessage += ' Check your email to verify your account.';
+        }
       } else if (paymentMethod === 'bank-transfer') {
         successMessage = `Order placed successfully! Please send R${total.toFixed(2)} to our bank account.`;
+        if (!user && createAccount) {
+          successMessage += ' Check your email to verify your account.';
+        }
       } else {
         successMessage = `Order placed successfully! Payment processed via ${paymentMethod}.`;
       }
@@ -230,6 +292,54 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
               </CardContent>
             </Card>
 
+            {/* Guest Account Creation Option */}
+            {!user && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Account Options</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="createAccount"
+                      checked={createAccount}
+                      onCheckedChange={(checked) => setCreateAccount(checked as boolean)}
+                    />
+                    <Label htmlFor="createAccount" className="text-sm">
+                      Create an account to track your orders and earn rewards points
+                    </Label>
+                  </div>
+                  
+                  {createAccount && (
+                    <div className="space-y-4 pl-6 border-l-2 border-gray-200">
+                      <div>
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={accountForm.password}
+                          onChange={(e) => setAccountForm(prev => ({ ...prev, password: e.target.value }))}
+                          placeholder="Create a password"
+                          required={createAccount}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={accountForm.confirmPassword}
+                          onChange={(e) => setAccountForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          placeholder="Confirm your password"
+                          required={createAccount}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Payment Method */}
             <Card>
               <CardHeader>
@@ -354,7 +464,7 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                 <Separator />
 
                 {/* Points Discount */}
-                {user.points > 0 && (
+                {user && user.points > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -363,7 +473,7 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                         onCheckedChange={(checked: boolean) => setUsePointsDiscount(checked)}
                       />
                         <Label htmlFor="use-points" className="text-sm">
-                        Use {Math.min(user.points, Math.floor(subtotal * 20))} points (save R{pointsDiscount.toFixed(2)})
+                        Use {Math.min(user?.points || 0, Math.floor(subtotal * 20))} points (save R{pointsDiscount.toFixed(2)})
                       </Label>
                     </div>
                   </div>

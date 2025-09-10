@@ -432,9 +432,9 @@ function AppContent() {
           />
         );
       case 'checkout':
-        return user ? (
+        return (
           <Checkout
-            user={user}
+            user={user} // Can be null for guest checkout
             items={items}
             onOrderComplete={() => {
               setCurrentPage('home');
@@ -442,7 +442,7 @@ function AppContent() {
             }}
             onBack={() => setCurrentPage('cart')}
           />
-        ) : null;
+        );
     case 'profile':
       return user ? (
         isAdmin ? (

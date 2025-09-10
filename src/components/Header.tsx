@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { useCart } from '../utils/cartUtils';
 import { useTheme } from '../utils/ThemeContext';
+import { VerificationBadge } from './VerificationBanner';
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -107,6 +108,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
             </Button>
 
             {/* User Account */}
+            <VerificationBadge />
             <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted" onClick={onProfileClick}>
               <User className="h-5 w-5" />
             </Button>

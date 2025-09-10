@@ -88,28 +88,37 @@ export interface Database {
       orders: {
         Row: {
           id: string
-          user_id: string
+          user_id: string | null // Made nullable for guest orders
           status: string
           total_amount: number
           shipping_address: Json
+          customer_email: string | null // Added for guest orders
+          customer_name: string | null // Added for guest orders
+          customer_phone: string | null // Added for guest orders
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          user_id: string
+          user_id?: string | null // Made nullable for guest orders
           status: string
           total_amount: number
           shipping_address: Json
+          customer_email?: string | null // Added for guest orders
+          customer_name?: string | null // Added for guest orders
+          customer_phone?: string | null // Added for guest orders
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          user_id?: string
+          user_id?: string | null
           status?: string
           total_amount?: number
           shipping_address?: Json
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           created_at?: string
           updated_at?: string
         }
