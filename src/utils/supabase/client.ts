@@ -104,6 +104,8 @@ export const getUserCart = async () => {
       .select(`
         id,
         quantity,
+        size,
+        color,
         products (id, name, price, image_url, category)
       `)
       .eq('cart_id', (cart as { id: string }).id);
@@ -120,8 +122,8 @@ export const getUserCart = async () => {
   }
 };
 
-// Helper function to add item to cart
-export const addToCart = async (productId: string, quantity: number = 1) => {
+// Helper function to add item to cart with size and color
+export const addToCart = async (productId: string, size?: string, color?: string, quantity: number = 1) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -135,13 +137,21 @@ export const addToCart = async (productId: string, quantity: number = 1) => {
     
     if (cartError) throw cartError;
 
-    // Check if item already exists in cart
-    const { data: existingItem, error: checkError } = await supabase
+    // Check if item already exists in cart with same size and color
+    let existingItemQuery = supabase
       .from('cart_items')
       .select('id, quantity')
       .eq('cart_id', (cart as { id: string }).id)
-      .eq('product_id', productId)
-      .single();
+      .eq('product_id', productId);
+
+    // Add size and color filters if provided
+    if (size) existingItemQuery = existingItemQuery.eq('size', size);
+    else existingItemQuery = existingItemQuery.is('size', null);
+    
+    if (color) existingItemQuery = existingItemQuery.eq('color', color);
+    else existingItemQuery = existingItemQuery.is('color', null);
+
+    const { data: existingItem, error: checkError } = await existingItemQuery.single();
 
     if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is the error code for no rows returned
       throw checkError;
@@ -162,6 +172,8 @@ export const addToCart = async (productId: string, quantity: number = 1) => {
         .insert({
           cart_id: (cart as { id: string }).id,
           product_id: productId,
+          size: size || null,
+          color: color || null,
           quantity
         });
 
@@ -175,7 +187,93 @@ export const addToCart = async (productId: string, quantity: number = 1) => {
   }
 };
 
-// Helper function to update cart item quantity
+// Helper function to find cart item by product, size, and color
+export const findCartItem = async (productId: string, size?: string, color?: string) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Get the user's cart
+    const { data: cart, error: cartError } = await supabase
+      .from('cart')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (cartError) throw cartError;
+
+    // Find cart item with matching product, size, and color
+    let query = supabase
+      .from('cart_items')
+      .select('id, quantity, size, color')
+      .eq('cart_id', (cart as { id: string }).id)
+      .eq('product_id', productId);
+
+    // Add size and color filters
+    if (size) query = query.eq('size', size);
+    else query = query.is('size', null);
+    
+    if (color) query = query.eq('color', color);
+    else query = query.is('color', null);
+
+    const { data: cartItem, error } = await query.single();
+    
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    return cartItem as { id: string; quantity: number; size: string | null; color: string | null } | null;
+  } catch (error) {
+    console.error('Error finding cart item:', error);
+    return null;
+  }
+};
+
+// Helper function to remove cart item by product, size, and color
+export const removeCartItem = async (productId: string, size?: string, color?: string) => {
+  try {
+    const cartItem = await findCartItem(productId, size, color);
+    if (!cartItem) return false;
+
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', cartItem.id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error removing cart item:', error);
+    return false;
+  }
+};
+
+// Helper function to update cart item quantity by product, size, and color
+export const updateCartItemByVariant = async (productId: string, quantity: number, size?: string, color?: string) => {
+  try {
+    const cartItem = await findCartItem(productId, size, color);
+    if (!cartItem) return false;
+
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or negative
+      return await removeCartItem(productId, size, color);
+    } else {
+      // Update quantity
+      const { error } = await (supabase
+        .from('cart_items') as any)
+        .update({ quantity })
+        .eq('id', cartItem.id);
+
+      if (error) throw error;
+      return true;
+    }
+  } catch (error) {
+    console.error('Error updating cart item by variant:', error);
+    return false;
+  }
+};
+
+// Helper function to update cart item quantity (legacy function for UUID-based updates)
 export const updateCartItemQuantity = async (cartItemId: string, quantity: number) => {
   try {
     if (quantity <= 0) {

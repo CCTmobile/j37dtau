@@ -293,7 +293,7 @@ function ProductCatalog({
 function AppContent() {
   const { user, isAdmin } = useAuth();
   const { products } = useProducts();
-  const { items, addItem, updateItemQuantity, removeItem } = useCart();
+  const { items, addItem, updateItemQuantity, removeItem, fetchCart } = useCart();
   const [currentPage, setCurrentPage] = useState<'home' | 'catalog' | 'product' | 'cart' | 'profile' | 'rewards' | 'checkout' | 'admin'>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -365,34 +365,24 @@ function AppContent() {
 
   // Wrapper functions to adapt CartContext functions to Cart component expectations
   const handleUpdateQuantity = async (productId: string, size: string, color: string, quantity: number) => {
-    // Find the cart item that matches the productId, size, and color
-    const cartItem = items.find(item =>
-      item.productId === productId &&
-      item.size === size &&
-      item.color === color
-    );
-
-    if (cartItem) {
-      // We need to create a unique cart item ID. For now, we'll use a combination of productId, size, and color
-      // In a real implementation, this should come from the backend
-      const cartItemId = `${productId}-${size}-${color}`;
-      await updateItemQuantity(cartItemId, quantity);
+    // Use the new updateCartItemByVariant function instead of fake IDs
+    const { updateCartItemByVariant } = await import('./utils/supabase/client');
+    const success = await updateCartItemByVariant(productId, quantity, size, color);
+    if (success) {
+      await fetchCart(); // Refresh cart after update
+    } else {
+      toast.error('Failed to update item quantity');
     }
   };
 
   const handleRemoveItem = async (productId: string, size: string, color: string) => {
-    // Find the cart item that matches the productId, size, and color
-    const cartItem = items.find(item =>
-      item.productId === productId &&
-      item.size === size &&
-      item.color === color
-    );
-
-    if (cartItem) {
-      // We need to create a unique cart item ID. For now, we'll use a combination of productId, size, and color
-      // In a real implementation, this should come from the backend
-      const cartItemId = `${productId}-${size}-${color}`;
-      await removeItem(cartItemId);
+    // Use the new removeCartItem function instead of fake IDs  
+    const { removeCartItem } = await import('./utils/supabase/client');
+    const success = await removeCartItem(productId, size, color);
+    if (success) {
+      await fetchCart(); // Refresh cart after removal
+    } else {
+      toast.error('Failed to remove item from cart');
     }
   };
 

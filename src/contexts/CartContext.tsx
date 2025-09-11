@@ -14,6 +14,7 @@ type CartContextType = {
   getTotalPrice: () => number;
   isGuestCart: boolean;
   mergeGuestCartOnLogin: () => Promise<void>;
+  fetchCart: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -61,7 +62,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       try {
         // Add each guest cart item to the user's Supabase cart
         for (const item of items) {
-          await addToCartSupabase(item.productId, item.quantity);
+          await addToCartSupabase(item.productId, item.size, item.color, item.quantity);
         }
         // Clear guest cart after successful merge
         localStorage.removeItem(GUEST_CART_KEY);
@@ -100,8 +101,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           rating: 4.5,
           inStock: true
         },
-        size: 'M', // Default size since not in DB schema
-        color: 'Black', // Default color since not in DB schema
+        size: item.size || 'M', // Use actual size from DB or default
+        color: item.color || 'Black', // Use actual color from DB or default
         quantity: item.quantity
       }));
       
@@ -147,7 +148,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return true;
       } else {
         // Handle authenticated user - use Supabase
-        const success = await addToCartSupabase(product.id, quantity);
+        const success = await addToCartSupabase(product.id, size, color, quantity);
         
         if (success) {
           await fetchCart(); // Refresh cart after adding item
@@ -272,7 +273,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       getTotalItems,
       getTotalPrice,
       isGuestCart,
-      mergeGuestCartOnLogin
+      mergeGuestCartOnLogin,
+      fetchCart
     }}>
       {children}
     </CartContext.Provider>
