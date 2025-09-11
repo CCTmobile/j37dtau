@@ -57,14 +57,14 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           name: p.name,
           category: p.category as Product['category'],
           price: p.price,
+          originalPrice: p.original_price || undefined, // Use actual original_price from database
           images: images,
-          sizes: ['S', 'M', 'L'], // Default sizes since not in DB schema
-          colors: ['Black', 'White'], // Default colors since not in DB schema
+          sizes: p.sizes || ['S', 'M', 'L'], // Use database sizes or default
+          colors: p.colors || ['Black', 'White'], // Use database colors or default
           description: p.description || '',
           reviews: [], // Reviews not implemented yet
           rating: 4.5, // Default rating since not in DB schema
-          inStock: true, // Default in stock since not in DB schema
-          originalPrice: p.price * 1.2 // Adding a default original price for sale items
+          inStock: p.in_stock ?? true // Use database in_stock value or default to true
         };
       });
       
@@ -115,13 +115,13 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         category: supabaseProduct.category as Product['category'],
         price: supabaseProduct.price,
         images: images,
-        sizes: ['S', 'M', 'L'], // Default sizes since not in DB schema
-        colors: ['Black', 'White'], // Default colors since not in DB schema
+        sizes: supabaseProduct.sizes || ['S', 'M', 'L'], // Use database sizes or default
+        colors: supabaseProduct.colors || ['Black', 'White'], // Use database colors or default
         description: supabaseProduct.description || '',
         reviews: [], // Reviews not implemented yet
         rating: 4.5, // Default rating since not in DB schema
-        inStock: true, // Default in stock since not in DB schema
-        originalPrice: supabaseProduct.price * 1.2 // Adding a default original price for sale items
+        inStock: supabaseProduct.in_stock ?? true, // Use database in_stock value or default to true
+        originalPrice: supabaseProduct.original_price || undefined // Use actual original_price from database
       };
 
       return transformedProduct;

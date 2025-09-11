@@ -9,11 +9,12 @@ import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save } from 'lucide-react';
+import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save, Crop } from 'lucide-react';
 import ImageUploadService, { ImageUploadOptions } from '../../utils/imageUpload';
 import { createProduct, updateProduct } from '../../utils/supabase/client';
 import { toast } from 'sonner';
 import type { Product } from '../../App';
+import { ImageCropper } from './ImageCropper';
 
 interface ProductFormProps {
   mode?: 'create' | 'edit';
@@ -53,6 +54,7 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
   const [newSizeInput, setNewSizeInput] = useState('');
   const [newColorInput, setNewColorInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [croppingImage, setCroppingImage] = useState<{ index: number; src: string; type: 'new' | 'existing' } | null>(null);
 
   // Cleanup effect for object URLs
   useEffect(() => {
@@ -65,6 +67,44 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
       });
     };
   }, [uploadedImages]);
+
+  const handleCropComplete = (croppedImageBlob: Blob) => {
+    if (!croppingImage) return;
+
+    const croppedFile = new File([croppedImageBlob], "cropped_image.png", { type: "image/png" });
+    const previewUrl = URL.createObjectURL(croppedFile);
+
+    if (croppingImage.type === 'new') {
+      setUploadedImages(prev => {
+        const newImages = [...prev];
+        const oldPreview = newImages[croppingImage.index].preview;
+        URL.revokeObjectURL(oldPreview); // Clean up old preview
+        newImages[croppingImage.index] = {
+          ...newImages[croppingImage.index],
+          file: croppedFile,
+          preview: previewUrl,
+          status: 'pending',
+        };
+        return newImages;
+      });
+    } else { // 'existing'
+      // When an existing image is cropped, we treat it as a new image to be uploaded
+      // and remove the old one from the existing list.
+      setExistingImages(prev => prev.filter((_, index) => index !== croppingImage.index));
+      setUploadedImages(prev => [
+        ...prev,
+        {
+          file: croppedFile,
+          preview: previewUrl,
+          status: 'pending',
+          progress: 0,
+        }
+      ]);
+    }
+
+    setCroppingImage(null);
+    toast.success("Image cropped successfully. Ready for upload.");
+  };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -514,19 +554,22 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {existingImages.map((imageUrl, index) => (
                     <div key={`existing-${index}`} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden border">
+                      <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => setCroppingImage({ index, src: imageUrl, type: 'existing' })}>
                         <img
                           src={imageUrl}
                           alt={`Existing ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                          <Crop className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" />
+                        </div>
                       </div>
                       <Button
                         type="button"
                         variant="destructive"
                         size="icon"
                         className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                        onClick={() => removeExistingImage(imageUrl)}
+                        onClick={(e) => { e.stopPropagation(); removeExistingImage(imageUrl); }}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -578,7 +621,7 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {uploadedImages.map((image, index) => (
                     <div key={`new-${index}`} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden border">
+                      <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => setCroppingImage({ index, src: image.preview, type: 'new' })}>
                         <img
                           src={image.preview}
                           alt={`New ${index + 1}`}
@@ -587,6 +630,11 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
 
                         {/* Status Overlay */}
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          {image.status === 'pending' && (
+                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                <Crop className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" />
+                            </div>
+                          )}
                           {image.status === 'uploading' && (
                             <div className="text-white text-center">
                               <div className="w-8 h-8 mx-auto mb-2">
@@ -614,7 +662,7 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
                         variant="destructive"
                         size="icon"
                         className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                        onClick={() => removeImage(index)}
+                        onClick={(e) => { e.stopPropagation(); removeImage(index); }}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -663,6 +711,11 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
             </Button>
           </div>
         </form>
+        <ImageCropper
+          src={croppingImage?.src || null}
+          onClose={() => setCroppingImage(null)}
+          onCropComplete={handleCropComplete}
+        />
       </CardContent>
     </Card>
   );

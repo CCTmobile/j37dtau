@@ -4,9 +4,11 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Star, ChevronRight, Sparkles, TrendingUp, Heart } from 'lucide-react';
 import { ResponsiveImage } from './ui/responsive-image';
+import { ProductCard } from './ui/ProductCard';
 import type { Product, User } from '../App';
 import { useProducts } from '../contexts/ProductContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 
 interface HomeProps {
   onViewProduct: (product: Product) => void;
@@ -16,7 +18,17 @@ interface HomeProps {
 export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
   const { products } = useProducts();
   const { user } = useAuth();
+  const { addItem } = useCart();
   const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set());
+
+  // Debug logging for Home component state
+  console.log('🏠 Home Component Debug:', {
+    totalProducts: products.length,
+    featuredProductsCount: products.slice(0, 4).length,
+    saleProductsCount: products.filter(p => p.originalPrice && p.price < p.originalPrice).length,
+    userLoggedIn: !!user,
+    likedProductsCount: likedProducts.size
+  });
 
   const categories = [
     { name: 'Dresses', icon: '👗', color: 'bg-pink-100 dark:bg-pink-900/30' },
@@ -29,6 +41,50 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
 
   const featuredProducts = products.slice(0, 4);
   const saleProducts = products.filter(p => p.originalPrice).slice(0, 3);
+
+  // Enhanced handler functions with debugging and error handling
+  const handleAddToCart = async (product: Product) => {
+    try {
+      console.log('🛒 Home: Adding product to cart:', product.id, product.name);
+      
+      // Default values for quick add to cart from home page
+      const defaultSize = 'M';
+      const defaultColor = 'Default';
+      const quantity = 1;
+      
+      const success = await addItem(product, defaultSize, defaultColor, quantity);
+      
+      if (success) {
+        console.log('✅ Home: Product added to cart successfully');
+        // You could add a toast notification here
+      } else {
+        console.error('❌ Home: Failed to add product to cart');
+      }
+    } catch (error) {
+      console.error('❌ Home: Error adding product to cart:', error);
+    }
+  };
+
+  const handleViewDetails = (product: Product) => {
+    console.log('👁️ Home: Viewing product details:', product.id, product.name);
+    onViewProduct(product);
+  };
+
+  const handleToggleWishlist = (product: Product) => {
+    console.log('❤️ Home: Toggling wishlist for product:', product.id, product.name);
+    
+    setLikedProducts(prev => {
+      const newLiked = new Set(prev);
+      if (newLiked.has(product.id)) {
+        newLiked.delete(product.id);
+        console.log('💔 Home: Removed from wishlist');
+      } else {
+        newLiked.add(product.id);
+        console.log('💖 Home: Added to wishlist');
+      }
+      return newLiked;
+    });
+  };
 
   const toggleLike = (productId: string) => {
     const newLiked = new Set(likedProducts);
@@ -115,59 +171,43 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
             {user ? 'Recommended for You' : 'Featured Products'}
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
-            <Card key={product.id} className="group cursor-pointer hover:shadow-lg transition-all duration-300 dark:bg-card dark:hover:bg-card/80">
-              <CardContent className="p-0">
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <ResponsiveImage
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    priority={true}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background dark:bg-card/80 dark:hover:bg-card"
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      toggleLike(product.id);
-                    }}
-                  >
-                    <Heart className={`h-4 w-4 ${likedProducts.has(product.id) ? 'fill-red-500 text-red-500' : 'text-foreground'}`} />
-                  </Button>
-                  {product.originalPrice && (
-                    <Badge className="absolute top-2 left-2 bg-destructive text-destructive-foreground">
-                      Sale
-                    </Badge>
-                  )}
-                </div>
-                <div className="p-4 space-y-2" onClick={() => onViewProduct(product)}>
-                  <h4 className="font-medium line-clamp-1 text-foreground">{product.name}</h4>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-muted-foreground">{product.rating}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">R{product.price}</span>
-                    {product.originalPrice && (
-                      <span className="text-sm text-muted-foreground line-through">
-                        R{product.originalPrice}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Enhanced Featured Products Grid with tall ProductCard layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {featuredProducts.map((product) => {
+            // Debug featured product rendering
+            console.log('🌟 Home: Rendering featured product:', {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              originalPrice: product.originalPrice,
+              category: product.category,
+              imageCount: product.images?.length || 0,
+              rating: product.rating,
+              reviewCount: product.reviews?.length || 0
+            });
+
+            return (
+              <div key={product.id} className="h-[480px]"> {/* Matches tall ProductCard height */}
+                <ProductCard
+                  product={product}
+                  layout="enhanced"
+                  showQuickActions={true}
+                  onAddToCart={handleAddToCart}
+                  onViewDetails={handleViewDetails}
+                  onToggleWishlist={handleToggleWishlist}
+                  className="h-full shadow-lg hover:shadow-xl transition-shadow duration-300"
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Flash Sale */}
+      {/* Enhanced Flash Sale with ProductCard Components */}
       {saleProducts.length > 0 && (
         <div className="px-4 md:px-6 lg:px-8">
           <div className="bg-gradient-to-r from-destructive/10 to-orange-100 dark:from-destructive/20 dark:to-orange-900/30 rounded-2xl p-4 md:p-6 lg:p-8 mt-6 md:mt-8">
+            {/* Flash Sale Header */}
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <div className="flex items-center gap-3">
                 <div className="text-2xl animate-bounce">🔥</div>
@@ -179,46 +219,48 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigateToCategory('All')}
+                onClick={() => {
+                  console.log('🔍 Home: View All Flash Sale clicked');
+                  onNavigateToCategory('All');
+                }}
                 className="dark:border-border dark:hover:bg-accent"
               >
                 View All
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {saleProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="cursor-pointer hover:shadow-md transition-all duration-300 hover:scale-105 dark:bg-card dark:hover:bg-card/80"
-                  onClick={() => onViewProduct(product)}
-                >
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <ResponsiveImage
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-16 h-16 object-cover rounded-lg"
-                      priority={true}
+
+            {/* Enhanced Product Cards Grid optimized for tall layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mb-6">
+              {saleProducts.map((product) => {
+                // Debug product rendering
+                console.log('🛍️ Home: Rendering flash sale product:', {
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  originalPrice: product.originalPrice,
+                  category: product.category,
+                  imageCount: product.images?.length || 0,
+                  rating: product.rating,
+                  reviewCount: product.reviews?.length || 0
+                });
+
+                return (
+                  <div key={product.id} className="h-[480px]"> {/* Matches tall ProductCard height */}
+                    <ProductCard
+                      product={product}
+                      layout="enhanced"
+                      showQuickActions={true}
+                      onAddToCart={handleAddToCart}
+                      onViewDetails={handleViewDetails}
+                      onToggleWishlist={handleToggleWishlist}
+                      className="h-full shadow-lg hover:shadow-xl transition-shadow duration-300"
                     />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium line-clamp-1 text-foreground">{product.name}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="font-semibold text-destructive dark:text-destructive-foreground">R{product.price}</span>
-                        <span className="text-sm text-muted-foreground line-through">
-                          R{product.originalPrice}
-                        </span>
-                        {product.originalPrice && (
-                          <Badge variant="destructive" className="text-xs px-2 py-0.5">
-                            -{Math.round((1 - product.price / product.originalPrice) * 100)}%
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Sale Information */}
+            {/* Sale Information Footer */}
             <div className="border-t border-border/50 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -226,7 +268,7 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
                   <span>Up to 70% OFF</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="w-2 h-2 bg-destructiv rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-destructive rounded-full animate-pulse"></div>
                   <span>Limited Stock</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">

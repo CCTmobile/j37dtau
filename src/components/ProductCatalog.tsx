@@ -5,8 +5,10 @@ import { Badge } from './ui/badge';
 import { Star, Grid, List, Filter, SortAsc, Search, X, Heart } from 'lucide-react';
 import { Input } from './ui/input';
 import { ProductImage } from './ui/responsive-image';
+import { ProductCard } from './ui/ProductCard';
 import { useProducts } from '../contexts/ProductContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import type { Product } from '../App';
 
 interface ProductCatalogProps {
@@ -24,6 +26,7 @@ export function ProductCatalog({
 }: ProductCatalogProps) {
   const { products } = useProducts();
   const { user } = useAuth();
+  const { addItem } = useCart();
   const [sortBy, setSortBy] = useState('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [likedProducts, setLikedProducts] = useState<Set<string>>(new Set());
@@ -32,6 +35,50 @@ export function ProductCatalog({
   const [showFilters, setShowFilters] = useState(false);
 
   const availableColors = [...new Set(products.flatMap(p => p.colors))];
+
+  // Handler functions for ProductCard
+  const handleAddToCart = async (product: Product) => {
+    try {
+      console.log('🛒 ProductCatalog: Adding product to cart:', product.id, product.name);
+      
+      // Default values for quick add to cart from catalog
+      const defaultSize = 'M';
+      const defaultColor = product.colors[0] || 'Default';
+      const quantity = 1;
+      
+      const success = await addItem(product, defaultSize, defaultColor, quantity);
+      
+      if (success) {
+        console.log('✅ ProductCatalog: Product added to cart successfully');
+        // You could add a toast notification here
+      } else {
+        console.error('❌ ProductCatalog: Failed to add product to cart');
+      }
+    } catch (error) {
+      console.error('❌ ProductCatalog: Error adding product to cart:', error);
+    }
+  };
+
+  const handleViewDetails = (product: Product) => {
+    console.log('👁️ ProductCatalog: Viewing product details:', product.id, product.name);
+    onViewProduct(product);
+  };
+
+  const handleToggleWishlist = (product: Product) => {
+    console.log('❤️ ProductCatalog: Toggling wishlist for product:', product.id, product.name);
+    
+    setLikedProducts(prev => {
+      const newLiked = new Set(prev);
+      if (newLiked.has(product.id)) {
+        newLiked.delete(product.id);
+        console.log('💔 ProductCatalog: Removed from wishlist');
+      } else {
+        newLiked.add(product.id);
+        console.log('💖 ProductCatalog: Added to wishlist');
+      }
+      return newLiked;
+    });
+  };
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
@@ -245,140 +292,173 @@ export function ProductCatalog({
             ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
             : 'grid-cols-1'
         }`}>
-          {filteredProducts.map((product) => (
-            <Card
-              key={product.id}
-              className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                viewMode === 'list' ? 'flex' : ''
-              } dark:bg-card dark:hover:bg-card/80`}
-              onClick={() => onViewProduct(product)}
-            >
-              <CardContent className="p-0">
-                {/* Product Image */}
-                <div className={`relative overflow-hidden ${
-                  viewMode === 'list' ? 'w-48 flex-shrink-0' : 'rounded-t-lg'
-                }`}>
-                  <ProductImage
-                    images={product.images}
-                    name={product.name}
-                    className={
-                      viewMode === 'list'
-                        ? 'w-48 h-48'
-                        : 'w-full h-48'
-                    }
-                    priority={true}
-                  />
+          {filteredProducts.map((product) => {
+            // Debug product rendering in catalog
+            console.log('🛍️ ProductCatalog: Rendering product:', {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              originalPrice: product.originalPrice,
+              category: product.category,
+              imageCount: product.images?.length || 0,
+              rating: product.rating,
+              colors: product.colors,
+              inStock: product.inStock,
+              viewMode
+            });
 
-                  {/* Like Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background dark:bg-card/80 dark:hover:bg-card"
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                      e.stopPropagation();
-                      toggleLike(product.id);
-                    }}
-                  >
-                    <Heart
-                      className={`h-4 w-4 ${
-                        likedProducts.has(product.id) ? 'fill-red-500 text-red-500' : 'text-foreground'
-                      }`}
-                    />
-                  </Button>
+            if (viewMode === 'list') {
+              // List view - enhanced list layout with theme compatibility
+              return (
+                <Card
+                  key={product.id}
+                  className="group cursor-pointer hover:shadow-lg transition-all duration-300 flex 
+                           bg-background/70 dark:bg-card/80 hover:bg-background dark:hover:bg-card/95
+                           border border-border dark:border-border/50"
+                  onClick={() => onViewProduct(product)}
+                >
+                  <CardContent className="p-0 flex">
+                    {/* Product Image - List View - Made taller (64px → 72px) */}
+                    <div className="relative overflow-hidden w-60 flex-shrink-0">
+                      <ProductImage
+                        images={product.images}
+                        name={product.name}
+                        className="w-60 h-60" 
+                        priority={true}
+                      />
 
-                  {/* Sale Badge */}
-                  {product.originalPrice && (
-                    <Badge className="absolute top-2 left-2 bg-destructive text-destructive-foreground">
-                      Sale
-                    </Badge>
-                  )}
-
-                  {/* Out of Stock Overlay */}
-                  {!product.inStock && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="text-white font-medium">Out of Stock</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Details */}
-                <div className={`space-y-2 ${viewMode === 'list' ? 'p-4 flex-1' : 'p-4'}`}>
-                  {/* Category & Stock */}
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="text-xs">
-                      {product.category}
-                    </Badge>
-                    {!product.inStock && (
-                      <Badge variant="secondary" className="text-xs text-red-600">
-                        Out of Stock
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Title */}
-                  <h4 className="font-medium line-clamp-2 text-foreground group-hover:text-primary transition-colors">
-                    {product.name}
-                  </h4>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-3 w-3 ${
-                            i < Math.floor(product.rating)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
+                      {/* Like Button - Theme-aware */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm 
+                                hover:bg-background dark:bg-card/80 dark:hover:bg-card"
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                          e.stopPropagation();
+                          toggleLike(product.id);
+                        }}
+                      >
+                        <Heart
+                          className={`h-4 w-4 ${
+                            likedProducts.has(product.id) ? 'fill-red-500 text-red-500' : 'text-foreground'
                           }`}
                         />
-                      ))}
+                      </Button>
+
+                      {/* Sale Badge - More visible in dark mode */}
+                      {product.originalPrice && (
+                        <Badge className="absolute top-2 left-2 bg-rose-500 text-white dark:bg-rose-600 dark:text-white">
+                          Sale
+                        </Badge>
+                      )}
+
+                      {/* Out of Stock Overlay - Theme-aware with better contrast */}
+                      {!product.inStock && (
+                        <div className="absolute inset-0 bg-black/60 dark:bg-black/70 flex items-center justify-center">
+                          <span className="text-white font-medium px-3 py-1 bg-black/40 backdrop-blur-sm rounded">
+                            Out of Stock
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      {product.rating} ({product.reviews.length})
-                    </span>
-                  </div>
 
-                  {/* Colors */}
-                  <div className="flex gap-1">
-                    {product.colors.slice(0, 4).map((color) => (
-                      <div
-                        key={color}
-                        className={`w-4 h-4 rounded-full border-2 border-gray-200 ${
-                          color.toLowerCase() === 'black' ? 'bg-black' :
-                          color.toLowerCase() === 'white' ? 'bg-white' :
-                          color.toLowerCase() === 'gray' ? 'bg-gray-400' :
-                          color.toLowerCase() === 'navy' ? 'bg-blue-900' :
-                          color.toLowerCase() === 'brown' ? 'bg-amber-800' :
-                          color.toLowerCase() === 'beige' ? 'bg-amber-100' :
-                          color.toLowerCase() === 'pink' ? 'bg-pink-400' :
-                          color.toLowerCase() === 'blue' ? 'bg-blue-500' :
-                          color.toLowerCase() === 'red' ? 'bg-red-500' :
-                          'bg-green-500'
-                        }`}
-                        title={color}
-                      />
-                    ))}
-                    {product.colors.length > 4 && (
-                      <span className="text-xs text-muted-foreground self-center ml-1">
-                        +{product.colors.length - 4}
-                      </span>
-                    )}
-                  </div>
+                    {/* Product Details - List View - Enhanced with better spacing */}
+                    <div className="p-6 flex-1 space-y-3">
+                      {/* Category & Stock */}
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="text-xs bg-secondary/80 text-secondary-foreground">
+                          {product.category}
+                        </Badge>
+                        {!product.inStock && (
+                          <Badge variant="outline" className="text-xs text-rose-500 dark:text-rose-400 border-rose-200 dark:border-rose-800">
+                            Out of Stock
+                          </Badge>
+                        )}
+                      </div>
 
-                  {/* Price */}
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">R{product.price}</span>
-                    {product.originalPrice && (
-                      <span className="text-sm text-muted-foreground line-through">
-                        R{product.originalPrice}
-                      </span>
-                    )}
-                  </div>
+                      {/* Title - Better typography */}
+                      <h4 className="font-semibold text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                        {product.name}
+                      </h4>
+
+                      {/* Rating - Theme compatible */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-4 w-4 ${
+                                i < Math.floor(product.rating)
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-gray-300 dark:text-gray-600'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {product.rating} ({product.reviews.length})
+                        </span>
+                      </div>
+
+                      {/* Colors - Theme compatible */}
+                      <div className="flex gap-1">
+                        {product.colors.slice(0, 4).map((color) => (
+                          <div
+                            key={color}
+                            className={`w-5 h-5 rounded-full border-2 ${
+                              color.toLowerCase() === 'black' ? 'bg-black border-gray-300 dark:border-gray-600' :
+                              color.toLowerCase() === 'white' ? 'bg-white border-gray-400' :
+                              color.toLowerCase() === 'gray' ? 'bg-gray-400 border-gray-500' :
+                              color.toLowerCase() === 'navy' ? 'bg-blue-900 border-blue-800' :
+                              color.toLowerCase() === 'brown' ? 'bg-amber-800 border-amber-700' :
+                              color.toLowerCase() === 'beige' ? 'bg-amber-100 border-amber-200' :
+                              color.toLowerCase() === 'pink' ? 'bg-pink-400 border-pink-500' :
+                              color.toLowerCase() === 'blue' ? 'bg-blue-500 border-blue-600' :
+                              color.toLowerCase() === 'red' ? 'bg-red-500 border-red-600' :
+                              'bg-green-500 border-green-600'
+                            }`}
+                            title={color}
+                          />
+                        ))}
+                        {product.colors.length > 4 && (
+                          <span className="text-xs text-muted-foreground self-center ml-1">
+                            +{product.colors.length - 4}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Price - Enhanced for better visibility */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="font-bold text-lg text-foreground">R{product.price}</span>
+                        {product.originalPrice && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            R{product.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            } else {
+              // Grid view - use the enhanced ProductCard with aspect ratio
+              return (
+                <div key={product.id}>
+                  <ProductCard
+                    product={product}
+                    layout="enhanced"
+                    showQuickActions={true}
+                    onAddToCart={handleAddToCart}
+                    onViewDetails={handleViewDetails}
+                    onToggleWishlist={handleToggleWishlist}
+                    className="shadow-md hover:shadow-xl transition-shadow duration-300
+                               bg-background/70 dark:bg-card/80 hover:bg-background dark:hover:bg-card/95
+                               border border-border dark:border-border/50"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              );
+            }
+          })}
         </div>
       )}
 
