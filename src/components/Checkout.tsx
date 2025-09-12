@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { createOrderFromCart, createGuestOrder } from '../utils/supabase/client';
 import { useCart } from '../contexts/CartContext';
 import type { CartItem, User } from '../App';
+import { BottomSpacer } from './ui/bottom-spacer';
 
 interface CheckoutProps {
   items: CartItem[];
@@ -175,7 +176,7 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
   };
 
   return (
-    <div className="container mx-auto px-6 py-6 max-w-6xl">
+    <div className="container mx-auto px-6 py-6 pb-24 max-w-6xl">
       <Button variant="ghost" onClick={onBack} className="mb-6">
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Cart
@@ -529,6 +530,7 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
           </div>
         </div>
       </form>
+      <BottomSpacer />
     </div>
   );
 }

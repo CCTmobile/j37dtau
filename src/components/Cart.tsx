@@ -7,6 +7,7 @@ import { Plus, Minus, Trash2, ShoppingBag, Tag } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
 import type { CartItem } from '../App';
+import { BottomSpacer } from './ui/bottom-spacer';
 
 interface CartProps {
   items: CartItem[];
@@ -57,7 +58,7 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12 pb-24">
         <div className="text-center max-w-md mx-auto">
           <ShoppingBag className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
@@ -73,7 +74,7 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
   }
 
   return (
-    <div className="container mx-auto px-6 py-6">
+    <div className="container mx-auto px-6 py-6 pb-24">
       <h1 className="text-2xl font-bold mb-6">Shopping Cart ({items.length} items)</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -238,6 +239,7 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
           </Card>
         </div>
       </div>
+      <BottomSpacer />
     </div>
   );
 }

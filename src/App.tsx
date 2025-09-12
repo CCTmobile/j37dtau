@@ -5,6 +5,8 @@ import { Cart } from './components/Cart';
 import { Profile } from './components/Profile';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminAccountSettings } from './components/admin/AdminAccountSettings';
+import { InformationCenter } from './components/info/InformationCenter';
+import { Footer } from './components/Footer';
 import Header from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { Rewards } from './components/Rewards';
@@ -21,6 +23,7 @@ import { ProductProvider, useProducts } from './contexts/ProductContext';
 import { CartProvider, useCart } from './contexts/CartContext';
 import { AuthModal } from './components/AuthModal';
 import { ProductImage } from './components/ui/responsive-image';
+import { BottomSpacer } from './components/ui/bottom-spacer';
 
 export type User = {
   id: string;
@@ -179,8 +182,8 @@ function ProductCatalog({
       </div>
 
       <div className={viewMode === 'grid' 
-        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
-        : "space-y-4"
+        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24" 
+        : "space-y-4 pb-24"
       }>
         {filteredProducts.map((product) => (
           <Card 
@@ -211,9 +214,9 @@ function ProductCatalog({
                 >
                   <Heart className={`h-4 w-4 ${likedProducts.has(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
-                {product.originalPrice && (
+                {product.originalPrice && product.originalPrice !== product.price && (
                   <Badge className="absolute top-2 left-2 bg-destructive text-destructive-foreground">
-                    Sale
+                    {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                   </Badge>
                 )}
               </div>
@@ -265,7 +268,7 @@ function ProductCatalog({
                 
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">R{product.price}</span>
-                  {product.originalPrice && (
+                  {product.originalPrice && product.originalPrice !== product.price && (
                     <span className="text-sm text-muted-foreground line-through">
                       R{product.originalPrice}
                     </span>
@@ -314,6 +317,8 @@ function ProductCatalog({
           </Button>
         </div>
       )}
+      
+      <BottomSpacer />
     </div>
   );
 }
@@ -322,7 +327,7 @@ function AppContent() {
   const { user, isAdmin } = useAuth();
   const { products } = useProducts();
   const { items, addItem, updateItemQuantity, removeItem, fetchCart } = useCart();
-  const [currentPage, setCurrentPage] = useState<'home' | 'catalog' | 'product' | 'cart' | 'profile' | 'rewards' | 'checkout' | 'admin'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'catalog' | 'product' | 'cart' | 'profile' | 'rewards' | 'checkout' | 'admin' | 'info'>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -507,6 +512,8 @@ function AppContent() {
         return user ? <Rewards /> : null;
       case 'admin':
         return isAdmin ? <AdminDashboard products={products} /> : null;
+      case 'info':
+        return <InformationCenter onBack={() => setCurrentPage('home')} />;
       default:
         return null;
     }
@@ -517,11 +524,17 @@ function AppContent() {
       <Header
         onSearch={setSearchQuery}
         onProfileClick={handleProfileClick}
+        onInfoClick={() => setCurrentPage('info')}
       />
 
-      <main className="flex-1 pb-20 md:pb-4">
+      <main className="flex-1 pb-28 md:pb-4">
         {renderCurrentPage()}
       </main>
+
+      <Footer onInfoClick={(page) => {
+        setCurrentPage('info');
+        // Note: In a full implementation, you'd also set the initial page for InformationCenter
+      }} />
 
       <BottomNav
         currentPage={currentPage}

@@ -8,6 +8,7 @@ import { Gift, Star, Crown, Trophy, ShoppingBag, Truck, Percent } from 'lucide-r
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import type { User } from '../App';
+import { BottomSpacer } from './ui/bottom-spacer';
 
 export function Rewards() {
   const { user, loading } = useAuth();
@@ -66,7 +67,7 @@ export function Rewards() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-6">
+    <div className="container mx-auto px-6 py-6 pb-24">
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Rewards & Membership</h1>
         <p className="text-muted-foreground">
@@ -224,6 +225,7 @@ export function Rewards() {
           </Card>
         </div>
       </div>
+      <BottomSpacer />
     </div>
   );
 }

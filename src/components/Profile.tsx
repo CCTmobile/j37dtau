@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserOrders } from '../utils/supabase/client';
 import { generateInvoicePDFSimple as generateInvoicePDF, printInvoice, viewInvoiceInModal } from '../utils/pdfUtilsSimple';
 import { VerificationBanner } from './VerificationBanner';
+import { BottomSpacer } from './ui/bottom-spacer';
 
 interface ProfileProps {
   onLogout: () => void;
@@ -186,7 +187,7 @@ export function Profile({ onLogout }: ProfileProps) {
   ];
 
   return (
-    <div className="container mx-auto px-6 py-6 max-w-2xl">
+    <div className="container mx-auto px-6 py-6 pb-24 max-w-2xl">
       {/* Email Verification Banner */}
       <VerificationBanner variant="card" className="mb-4" showDismiss />
       
@@ -557,6 +558,7 @@ export function Profile({ onLogout }: ProfileProps) {
           )}
         </DialogContent>
       </Dialog>
+      <BottomSpacer />
     </div>
   );
 }

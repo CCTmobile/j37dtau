@@ -6,6 +6,7 @@ import { Separator } from './ui/separator';
 import { ArrowLeft, Star, Heart, Share2, ShoppingBag, Plus, Minus, Truck, Shield, RotateCcw, Copy, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '../App';
+import { BottomSpacer } from './ui/bottom-spacer';
 
 interface ProductDetailProps {
   product: Product;
@@ -480,6 +481,7 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
           </CardContent>
         </Card>
       </div>
+      <BottomSpacer />
     </div>
   );
 }

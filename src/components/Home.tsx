@@ -8,6 +8,7 @@ import { ProductCard } from './ui/ProductCard';
 import type { Product, User } from '../App';
 import { useProducts } from '../contexts/ProductContext';
 import { useAuth } from '../contexts/AuthContext';
+import { BottomSpacer } from './ui/bottom-spacer';
 import { useCart } from '../contexts/CartContext';
 
 interface HomeProps {
@@ -377,6 +378,8 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
           </div>
         </div>
       </div>
+      
+      <BottomSpacer />
     </div>
   );
 }

@@ -9,7 +9,9 @@ import { OrdersTable } from './admin/OrdersTable';
 import { ProductForm } from './admin/ProductForm';
 import { ProductList } from './admin/ProductList';
 import { AdminAccountSettings } from './admin/AdminAccountSettings';
+import { ContentManager } from './info/admin/ContentManager';
 import type { Product } from '../App';
+import { BottomSpacer } from './ui/bottom-spacer';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -37,19 +39,20 @@ export function AdminDashboard({ products, defaultTab = "overview" }: AdminDashb
   };
 
   return (
-    <div className="container mx-auto px-6 py-6">
+    <div className="container mx-auto px-6 py-6 pb-24">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">Manage your store and view analytics</p>
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Account Settings</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -112,10 +115,15 @@ export function AdminDashboard({ products, defaultTab = "overview" }: AdminDashb
           </div>
         </TabsContent>
 
+        <TabsContent value="content">
+          <ContentManager />
+        </TabsContent>
+
         <TabsContent value="settings">
           <AdminAccountSettings />
         </TabsContent>
       </Tabs>
+      <BottomSpacer />
     </div>
   );
 }

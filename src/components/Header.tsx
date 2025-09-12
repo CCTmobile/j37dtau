@@ -1,5 +1,5 @@
 import React, { useState, useCallback, memo } from 'react';
-import { ShoppingCart, User, Search, Menu, Sun, Moon, Sparkles, Users, UserCheck, Tag } from 'lucide-react';
+import { ShoppingCart, User, Search, Menu, Sun, Moon, Sparkles, Users, UserCheck, Tag, Info } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Input } from './ui/input';
@@ -12,9 +12,10 @@ interface HeaderProps {
   onSearch?: (query: string) => void;
   cartItemCount?: number;
   onProfileClick?: () => void;
+  onInfoClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileClick }) => {
+const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileClick, onInfoClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -28,10 +29,11 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
   }, [onSearch, searchQuery]);
 
   const navItems = [
-    { name: 'New Arrivals', href: '#new', icon: Sparkles },
-    { name: 'Women', href: '#women', icon: Users },
-    { name: 'Men', href: '#men', icon: UserCheck },
-    { name: 'Sale', href: '#sale', icon: Tag },
+    { name: 'New Arrivals', href: '#new', icon: Sparkles, onClick: () => {} },
+    { name: 'Women', href: '#women', icon: Users, onClick: () => {} },
+    { name: 'Men', href: '#men', icon: UserCheck, onClick: () => {} },
+    { name: 'Sale', href: '#sale', icon: Tag, onClick: () => {} },
+    { name: 'About', href: '#about', icon: Info, onClick: () => onInfoClick?.() },
   ];
 
   return (
@@ -51,15 +53,15 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
             {navItems.map((item) => {
               const IconComponent = item.icon;
               return (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
+                  onClick={item.onClick}
                   className="p-2 rounded-md text-foreground hover:text-primary hover:bg-muted transition-colors"
                   title={item.name}
                   aria-label={item.name}
                 >
                   <IconComponent className="h-5 w-5" />
-                </a>
+                </button>
               );
             })}
           </nav>
@@ -141,15 +143,17 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
                     {navItems.map((item) => {
                       const IconComponent = item.icon;
                       return (
-                        <a
+                        <button
                           key={item.name}
-                          href={item.href}
-                          className="flex items-center text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                          onClick={() => setIsMobileMenuOpen(false)}
+                          onClick={() => {
+                            item.onClick();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="flex items-center text-lg font-medium text-foreground hover:text-primary transition-colors py-2 text-left"
                         >
                           <IconComponent className="h-5 w-5 mr-3" />
                           {item.name}
-                        </a>
+                        </button>
                       );
                     })}
                   </nav>
