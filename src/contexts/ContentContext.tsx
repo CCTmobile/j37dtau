@@ -224,9 +224,6 @@ const CACHE_EXPIRY_TIME = 5 * 60 * 1000;
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(contentReducer, initialState);
   
-  // Debug logging
-  console.log('ContentProvider rendered with state:', state);
-  
   // Use refs to access current state and functions in stable callbacks
   const stateRef = useRef(state);
   const getPageContentRef = useRef<((pageType: PageType, forceRefresh?: boolean) => Promise<PageContent | null>) | null>(null);
@@ -405,8 +402,6 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const subscription = ContentService.subscribeToContentChanges(pageType, (payload) => {
-      console.log('Real-time content update received:', payload);
-      
       // Invalidate cache to force refresh on next access
       dispatch({ type: 'INVALIDATE_CONTENT', pageType });
       

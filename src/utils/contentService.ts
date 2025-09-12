@@ -57,6 +57,7 @@ export type PageType = 'about' | 'privacy' | 'terms' | 'shipping' | 'returns' | 
 export class ContentService {
   /**
    * Fetch active content for a specific page type (public access)
+   * with improved error handling and fallbacks
    */
   static async fetchPageContent(pageType: PageType): Promise<PageContent | null> {
     try {
@@ -66,22 +67,24 @@ export class ContentService {
         .select('page_data')
         .eq('page_type', pageType)
         .eq('is_active', true)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid error when no rows
 
       if (error) {
-        console.error(`Error fetching content for ${pageType}:`, error);
-        return null;
+        console.warn(`Database error fetching content for ${pageType}:`, error);
+        // Return fallback content instead of null
+        return this.getFallbackContent(pageType);
       }
 
-      // If no data returned, return null
+      // If no data returned, return fallback content
       if (!data || !data.page_data) {
-        return null;
+        console.info(`No content found in database for ${pageType}, using fallback`);
+        return this.getFallbackContent(pageType);
       }
 
       return data.page_data as PageContent;
     } catch (error) {
       console.error(`Unexpected error fetching content for ${pageType}:`, error);
-      return null;
+      return this.getFallbackContent(pageType);
     }
   }
 
@@ -106,6 +109,113 @@ export class ContentService {
       console.error('Unexpected error fetching all content:', error);
       return [];
     }
+  }
+
+  /**
+   * Get fallback content when database is not available or content is missing
+   */
+  static getFallbackContent(pageType: PageType): PageContent {
+    const fallbackContent: Record<PageType, PageContent> = {
+      about: {
+        title: "About Rosémama Clothing",
+        description: "Learn about our story, values, and team",
+        sections: [
+          {
+            id: "company-story",
+            title: "Our Story",
+            content: "<p>Founded by Rosemary Oku, Rosémama began as a boutique in Midrand, South Africa with a vision to make beautiful, quality fashion accessible to every South African woman.</p>"
+          },
+          {
+            id: "mission-values",
+            title: "Our Mission & Values",
+            content: "<p><strong>Our Mission:</strong> To democratize fashion by providing high-quality, sustainable clothing that empowers women to express their unique style with confidence.</p>"
+          }
+        ]
+      },
+      privacy: {
+        title: "Privacy Policy",
+        description: "Our commitment to protecting your privacy",
+        sections: [
+          {
+            id: "introduction",
+            title: "Introduction",
+            content: "<p>At Rosémama Clothing, we are committed to protecting your privacy and personal information. This policy explains how we collect, use, and protect your data.</p>"
+          }
+        ]
+      },
+      terms: {
+        title: "Terms & Conditions",
+        description: "Legal terms and conditions",
+        sections: [
+          {
+            id: "introduction",
+            title: "Introduction",
+            content: "<h4>Welcome to Terms & Conditions</h4><p>This is the introduction section. Edit this content to provide information about terms.</p><p>These terms and conditions govern your use of Rosémama Clothing's services. By using our website and services, you agree to these terms.</p>"
+          },
+          {
+            id: "acceptance",
+            title: "Acceptance of Terms",
+            content: "<p>By accessing and using this website, you accept and agree to be bound by the terms and provision of this agreement.</p>"
+          },
+          {
+            id: "use-license",
+            title: "Use License",
+            content: "<p>Permission is granted to temporarily download one copy of the materials on Rosémama Clothing's website for personal, non-commercial transitory viewing only.</p>"
+          },
+          {
+            id: "disclaimer",
+            title: "Disclaimer",
+            content: "<p>The materials on Rosémama Clothing's website are provided on an 'as is' basis. Rosémama Clothing makes no warranties, expressed or implied.</p>"
+          }
+        ]
+      },
+      shipping: {
+        title: "Shipping Information",
+        description: "Delivery options and policies",
+        sections: [
+          {
+            id: "delivery-options",
+            title: "Delivery Options",
+            content: "<p>We offer various shipping options to suit your needs. Standard delivery takes 3-5 business days within South Africa.</p>"
+          }
+        ]
+      },
+      returns: {
+        title: "Returns & Exchanges",
+        description: "Our return and exchange policy",
+        sections: [
+          {
+            id: "return-policy",
+            title: "Return Policy",
+            content: "<p>We accept returns within 30 days of purchase. Items must be in original condition with tags attached.</p>"
+          }
+        ]
+      },
+      help: {
+        title: "Help & Support",
+        description: "Get help with your orders and account",
+        sections: [
+          {
+            id: "faq",
+            title: "Frequently Asked Questions",
+            content: "<p>Find answers to common questions about our products, orders, and services.</p>"
+          }
+        ]
+      },
+      contact: {
+        title: "Contact Us",
+        description: "Get in touch with our team",
+        sections: [
+          {
+            id: "contact-info",
+            title: "Contact Information",
+            content: "<p>Reach out to us for any questions or support. We're here to help!</p>"
+          }
+        ]
+      }
+    };
+
+    return fallbackContent[pageType];
   }
 
   /**
@@ -187,7 +297,7 @@ export class ContentService {
   }
 
   /**
-   * Update existing content page
+   * Update existing content page or create if it doesn't exist
    */
   static async updatePageContent(
     pageType: PageType, 
@@ -201,20 +311,20 @@ export class ContentService {
         return { success: false, error: 'User not authenticated' };
       }
 
-      // First, get the current content to update
+      // First, try to get the current content
       const { data: currentContent, error: fetchError } = await (supabase as any)
         .from('content_pages')
         .select('id')
         .eq('page_type', pageType)
         .eq('is_active', true)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid error when no rows found
 
-      if (fetchError || !currentContent) {
-        console.error(`Error fetching current content for update:`, fetchError);
-        return { success: false, error: 'Content not found for update' };
+      // If page doesn't exist, create it
+      if (!currentContent) {
+        return await this.savePageContent(pageType, pageData, changeSummary);
       }
 
-      // Update the content
+      // Update the existing content
       const { data, error } = await (supabase as any)
         .from('content_pages')
         .update({
@@ -403,6 +513,43 @@ export class ContentService {
     } catch (error) {
       console.error('Error checking admin access:', error);
       return false;
+    }
+  }
+
+  /**
+   * Check if the content management system is properly set up
+   */
+  static async checkDatabaseHealth(): Promise<{
+    tableExists: boolean;
+    hasData: boolean;
+    error?: string;
+  }> {
+    try {
+      // Try to query the content_pages table
+      const { data, error } = await (supabase as any)
+        .from('content_pages')
+        .select('id, page_type')
+        .limit(1);
+
+      if (error) {
+        return {
+          tableExists: false,
+          hasData: false,
+          error: error.message
+        };
+      }
+
+      return {
+        tableExists: true,
+        hasData: data && data.length > 0,
+        error: undefined
+      };
+    } catch (error) {
+      return {
+        tableExists: false,
+        hasData: false,
+        error: (error as Error).message
+      };
     }
   }
 }

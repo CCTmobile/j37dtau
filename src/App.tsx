@@ -26,6 +26,7 @@ import { AuthModal } from './components/AuthModal';
 import { ProductImage } from './components/ui/responsive-image';
 import { BottomSpacer } from './components/ui/bottom-spacer';
 import { ToastProvider } from './components/notifications/ToastProvider';
+import { ImageDebugger } from './components/debug/ImageDebugger';
 
 export type User = {
   id: string;
@@ -329,7 +330,7 @@ function AppContent() {
   const { user, isAdmin } = useAuth();
   const { products } = useProducts();
   const { items, addItem, updateItemQuantity, removeItem, fetchCart } = useCart();
-  const [currentPage, setCurrentPage] = useState<'home' | 'catalog' | 'product' | 'cart' | 'profile' | 'rewards' | 'checkout' | 'admin' | 'info'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'catalog' | 'product' | 'cart' | 'profile' | 'rewards' | 'checkout' | 'admin' | 'info' | 'debug'>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -517,6 +518,8 @@ function AppContent() {
         return isAdmin ? <AdminDashboard products={products} /> : null;
       case 'info':
         return <InformationCenter onBack={() => setCurrentPage('home')} initialPage={infoPage} />;
+      case 'debug':
+        return <ImageDebugger />;
       default:
         return null;
     }

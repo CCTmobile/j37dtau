@@ -35,49 +35,86 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
-  // Debug logging for carousel state
+  // Get fallback image URLs for products
+  const getFallbackImages = (): string[] => {
+    const fallbackImages = [
+      '/images/summer-floral-dress.jpg',
+      '/images/evening-gown.jpg', 
+      '/images/denim-jacket.jpg',
+      '/images/ankle-boots.jpg'
+    ];
+    
+    // Return a random fallback or the placeholder
+    const randomFallback = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+    return [randomFallback];
+  };
+
+  // Filter out broken images and add fallbacks if needed
+  const validImages = images.filter((_, index) => !imageErrors.has(index));
+  
+  // If all images failed, use fallback images
+  const imagesToDisplay = validImages.length === 0 ? getFallbackImages() : validImages;
+  const currentImage = imagesToDisplay[currentIndex] || imagesToDisplay[0];
+
+  // Debug logging for carousel state (only when there are errors)
   useEffect(() => {
-    console.log('🖼️ ImageCarousel Debug:', {
-      totalImages: images.length,
-      currentIndex,
-      imageErrors: Array.from(imageErrors),
-      autoSlide,
-      aspectRatio
-    });
+    if (imageErrors.size > 0) {
+      console.log('🖼️ ImageCarousel Debug:', {
+        totalImages: images.length,
+        currentIndex,
+        imageErrors: Array.from(imageErrors),
+        autoSlide,
+        aspectRatio
+      });
+    }
   }, [currentIndex, images.length, imageErrors, autoSlide, aspectRatio]);
 
   // Auto-slide functionality
   useEffect(() => {
-    if (!autoSlide || images.length <= 1) return;
+    if (!autoSlide || imagesToDisplay.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => {
-        const nextIndex = (prev + 1) % images.length;
+        const nextIndex = (prev + 1) % imagesToDisplay.length;
         console.log('🔄 Auto-slide: Moving to image', nextIndex);
         return nextIndex;
       });
     }, autoSlideInterval);
 
     return () => clearInterval(interval);
-  }, [autoSlide, images.length, autoSlideInterval]);
+  }, [autoSlide, imagesToDisplay.length, autoSlideInterval]);
 
   // Navigation handlers with debugging
   const goToPrevious = () => {
-    const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
+    const prevIndex = currentIndex === 0 ? imagesToDisplay.length - 1 : currentIndex - 1;
     console.log('⬅️ Navigation: Previous clicked, moving to index', prevIndex);
     setCurrentIndex(prevIndex);
   };
 
   const goToNext = () => {
-    const nextIndex = (currentIndex + 1) % images.length;
+    const nextIndex = (currentIndex + 1) % imagesToDisplay.length;
     console.log('➡️ Navigation: Next clicked, moving to index', nextIndex);
     setCurrentIndex(nextIndex);
   };
 
   // Handle image loading errors
   const handleImageError = (index: number) => {
-    console.error('❌ Image Loading Error: Failed to load image at index', index, 'URL:', images[index]);
+    const failedUrl = images[index];
+    console.error('❌ Image Loading Error: Failed to load image at index', index, 'URL:', failedUrl);
+    
+    // Add some additional debugging
+    if (failedUrl) {
+      console.log('🔍 URL Analysis:', {
+        isDataUrl: failedUrl.startsWith('data:'),
+        isHttps: failedUrl.startsWith('https:'),
+        isSupabase: failedUrl.includes('supabase.co'),
+        urlLength: failedUrl.length,
+        urlPreview: failedUrl.substring(0, 100) + (failedUrl.length > 100 ? '...' : '')
+      });
+    }
+    
     setImageErrors(prev => new Set([...prev, index]));
+    console.log('🔄 Fallback triggered for image', index, '- switching to fallback images');
   };
 
   // Handle successful image loading
@@ -88,13 +125,9 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
     }
   };
 
-  // Filter out broken images
-  const validImages = images.filter((_, index) => !imageErrors.has(index));
-  const currentImage = validImages[currentIndex] || images[0];
-
-  // Show error state if no valid images
-  if (validImages.length === 0) {
-    console.warn('⚠️ ImageCarousel Warning: No valid images available');
+  // Show error state if no valid images and no fallbacks
+  if (imagesToDisplay.length === 0) {
+    console.warn('⚠️ ImageCarousel Warning: No valid images or fallbacks available');
     return (
       <div 
         className={`flex items-center justify-center bg-gray-100 w-full h-full ${className}`}
@@ -125,7 +158,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
       <div className="relative z-10 w-full h-full flex items-center justify-center">
         <img
           src={currentImage}
-          alt={`${alt} - Image ${currentIndex + 1} of ${validImages.length}`}
+          alt={`${alt} - Image ${currentIndex + 1} of ${imagesToDisplay.length}`}
           className="max-w-full max-h-full object-contain"
           onError={() => handleImageError(currentIndex)}
           onLoad={() => handleImageLoad(currentIndex)}
@@ -141,7 +174,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
       )}
 
       {/* Navigation Controls - Only show if multiple images */}
-      {showNavigation && validImages.length > 1 && (
+      {showNavigation && imagesToDisplay.length > 1 && (
         <>
           {/* Previous Button */}
           <button
@@ -174,7 +207,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
           {/* Image Indicators */}
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 
                         flex space-x-2">
-            {validImages.map((_, index) => (
+            {imagesToDisplay.map((_, index) => (
               <button
                 key={index}
                 onClick={() => {
@@ -187,7 +220,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
                             ? 'bg-white shadow-lg scale-110' 
                             : 'bg-white bg-opacity-60 hover:bg-opacity-80 hover:scale-105'
                           }`}
-                aria-label={`Go to image ${index + 1} of ${validImages.length}`}
+                aria-label={`Go to image ${index + 1} of ${imagesToDisplay.length}`}
               />
             ))}
           </div>
@@ -197,7 +230,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
       {/* Debug Info - Only visible in development */}
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute top-2 left-2 z-30 bg-black bg-opacity-75 text-white text-xs p-2 rounded">
-          <div>Img: {currentIndex + 1}/{validImages.length}</div>
+          <div>Img: {currentIndex + 1}/{imagesToDisplay.length}</div>
           <div>Ratio: {aspectRatio}</div>
           <div>Errors: {imageErrors.size}</div>
         </div>

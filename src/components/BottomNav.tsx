@@ -1,4 +1,4 @@
-import { Home, Search, ShoppingBag, User, Award, Settings } from 'lucide-react';
+import { Home, Search, ShoppingBag, User, Award, Settings, Bug } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { Button } from './ui/button';
@@ -19,7 +19,8 @@ export function BottomNav({ currentPage, onPageChange }: BottomNavProps) {
     { id: 'cart', label: 'Cart', icon: ShoppingBag, badge: cartItemCount },
     { id: 'rewards', label: 'Rewards', icon: Award },
     { id: 'profile', label: 'Profile', icon: User },
-    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : [])
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : []),
+    ...(process.env.NODE_ENV === 'development' ? [{ id: 'debug', label: 'Debug', icon: Bug }] : [])
   ];
 
   return (

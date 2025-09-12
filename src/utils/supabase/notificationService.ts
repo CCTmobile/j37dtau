@@ -200,9 +200,9 @@ class NotificationService {
     try {
       const { data, error } = await (supabase as any)
         .from('notifications')
-        .select('id', { count: 'exact' })
+        .select('id')
         .eq('user_id', userId)
-        .is('read_at', null);
+        .eq('read_at', null);
 
       if (error) {
         console.warn('Using localStorage for unread count:', error.message);
@@ -268,7 +268,7 @@ class NotificationService {
         .from('notification_preferences')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.warn('Notification preferences table not available, using defaults:', error.message);
@@ -279,14 +279,40 @@ class NotificationService {
           push_notifications: false,
           system_alerts: true,
           order_alerts: true,
-          security_alerts: true
+          security_alerts: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }
+
+      if (!data) {
+        // No preferences found, return defaults
+        return {
+          user_id: userId,
+          email_notifications: true,
+          push_notifications: false,
+          system_alerts: true,
+          order_alerts: true,
+          security_alerts: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
       }
 
       return data;
     } catch (error) {
       console.error('Error fetching notification preferences:', error);
-      return null;
+      // Return defaults on error
+      return {
+        user_id: userId,
+        email_notifications: true,
+        push_notifications: false,
+        system_alerts: true,
+        order_alerts: true,
+        security_alerts: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     }
   }
 

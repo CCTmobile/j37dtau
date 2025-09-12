@@ -1,5 +1,5 @@
  import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getProducts, getProduct } from '../utils/supabase/client';
+import { getProducts, getProduct, supabase } from '../utils/supabase/client';
 import type { Product } from '../App';
 import type { Database } from '../utils/supabase/types';
 
@@ -33,18 +33,31 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
         // First check if new images array exists and has content
         if (p.images && Array.isArray(p.images) && p.images.length > 0) {
-          images = (p.images as any[]).filter(img => img && typeof img === 'string' && img.trim() !== '');
+          images = (p.images as any[])
+            .filter(img => img && typeof img === 'string' && img.trim() !== '')
+            .map(imgPath => {
+              // If already a full URL, use as-is
+              if (imgPath.startsWith('http')) {
+                return imgPath;
+              }
+              // Otherwise, construct Supabase storage URL
+              const cleanPath = imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
+              return supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+            });
         }
         // Fallback to old image_url format
         else if (p.image_url && typeof p.image_url === 'string' && p.image_url.trim() !== '') {
-          // If it's a local path, convert to full Supabase Storage URL
-          if (p.image_url.startsWith('/images/')) {
-            images = [`https://xsgumgcioyaehccvklbr.supabase.co/storage/v1/object/public/product-images${p.image_url}`];
-          } else if (p.image_url.startsWith('http')) {
-            images = [p.image_url];
+          const imgPath = p.image_url;
+          
+          // If it's already a full URL, use as-is
+          if (imgPath.startsWith('http')) {
+            images = [imgPath];
           } else {
-            // If it's a storage path, construct full URL
-            images = [`https://xsgumgcioyaehccvklbr.supabase.co/storage/v1/object/public/product-images/${p.image_url}`];
+            // Use Supabase storage helper to get public URL
+            const cleanPath = imgPath.startsWith('/images/') ? imgPath.substring(8) : 
+                             imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
+            const publicUrl = supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+            images = [publicUrl];
           }
         }
         // Use placeholder if no images
@@ -90,18 +103,31 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
       // Handle both old image_url format and new images array format
       if (supabaseProduct.images && Array.isArray(supabaseProduct.images) && supabaseProduct.images.length > 0) {
-        images = (supabaseProduct.images as any[]).filter(img => img && typeof img === 'string' && img.trim() !== '');
+        images = (supabaseProduct.images as any[])
+          .filter(img => img && typeof img === 'string' && img.trim() !== '')
+          .map(imgPath => {
+            // If already a full URL, use as-is
+            if (imgPath.startsWith('http')) {
+              return imgPath;
+            }
+            // Otherwise, construct Supabase storage URL
+            const cleanPath = imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
+            return supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+          });
       }
       // Fallback to old image_url format
       else if (supabaseProduct.image_url && typeof supabaseProduct.image_url === 'string' && supabaseProduct.image_url.trim() !== '') {
-        // If it's a local path, convert to full Supabase Storage URL
-        if (supabaseProduct.image_url.startsWith('/images/')) {
-          images = [`https://xsgumgcioyaehccvklbr.supabase.co/storage/v1/object/public/product-images${supabaseProduct.image_url}`];
-        } else if (supabaseProduct.image_url.startsWith('http')) {
-          images = [supabaseProduct.image_url];
+        const imgPath = supabaseProduct.image_url;
+        
+        // If it's already a full URL, use as-is
+        if (imgPath.startsWith('http')) {
+          images = [imgPath];
         } else {
-          // If it's a storage path, construct full URL
-          images = [`https://xsgumgcioyaehccvklbr.supabase.co/storage/v1/object/public/product-images/${supabaseProduct.image_url}`];
+          // Use Supabase storage helper to get public URL
+          const cleanPath = imgPath.startsWith('/images/') ? imgPath.substring(8) : 
+                           imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
+          const publicUrl = supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+          images = [publicUrl];
         }
       }
       // Use placeholder if no images

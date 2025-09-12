@@ -118,11 +118,8 @@ export function ContentManager() {
   // Load current page content
   useEffect(() => {
     const loadPageContent = async () => {
-      console.log('[ContentManager] Loading content for page:', selectedPage);
       const content = await getPageContent(selectedPage);
-      console.log('[ContentManager] Loaded content:', content);
       const finalContent = content || createDefaultContent(selectedPage);
-      console.log('[ContentManager] Final content to set:', finalContent);
       setCurrentPageContent(finalContent);
     };
     
@@ -298,7 +295,7 @@ export function ContentManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-500 to-blue-600 text-white p-6 rounded-lg">
         <h1 className="text-2xl font-bold mb-2">Content Management System</h1>
@@ -371,20 +368,24 @@ export function ContentManager() {
       )}
 
       {/* Page Tabs */}
-      <Tabs value={selectedPage} onValueChange={(value) => setSelectedPage(value as PageType)}>
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+      <Tabs value={selectedPage} onValueChange={(value) => setSelectedPage(value as PageType)} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 h-auto min-h-[3rem] p-1">
           {pageConfigs.map(page => {
             const IconComponent = page.icon;
             return (
-              <TabsTrigger key={page.id} value={page.id} className="flex items-center gap-2">
-                <IconComponent className="h-4 w-4" />
-                <span className="hidden sm:inline">{page.name}</span>
+              <TabsTrigger 
+                key={page.id} 
+                value={page.id} 
+                className="flex items-center gap-2 px-2 py-2 text-xs sm:text-sm whitespace-nowrap overflow-hidden"
+              >
+                <IconComponent className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">{page.name}</span>
               </TabsTrigger>
             );
           })}
         </TabsList>
 
-        <TabsContent value={selectedPage} className="space-y-6">
+        <TabsContent value={selectedPage} className="space-y-6 mt-6">
           
           {/* Page Info */}
           <Card>
