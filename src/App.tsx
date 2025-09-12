@@ -25,6 +25,7 @@ import { ContentProvider } from './contexts/ContentContext';
 import { AuthModal } from './components/AuthModal';
 import { ProductImage } from './components/ui/responsive-image';
 import { BottomSpacer } from './components/ui/bottom-spacer';
+import { ToastProvider } from './components/notifications/ToastProvider';
 
 export type User = {
   id: string;
@@ -569,7 +570,9 @@ export default function App() {
         <CartProvider>
           <ContentProvider>
             <ThemeProvider>
-              <AppContent />
+              <ToastProvider position="top-right" maxToasts={5}>
+                <AppContent />
+              </ToastProvider>
             </ThemeProvider>
           </ContentProvider>
         </CartProvider>

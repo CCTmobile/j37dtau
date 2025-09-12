@@ -115,34 +115,38 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="w-full overflow-hidden">
         {viewMode === 'grid' ? (
-          // Grid layout for better mobile experience
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredProducts.map((product) => (
-              <ProductGridItem
-                key={product.id}
-                product={product}
-                onEdit={onEditProduct}
-                onDelete={handleDeleteProduct}
-                onView={(product) => setSelectedProduct(product)}
-                formatPrice={formatPrice}
-              />
-            ))}
+          // Grid layout with proper containment
+          <div className="w-full overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 w-full">
+              {filteredProducts.map((product) => (
+                <ProductGridItem
+                  key={product.id}
+                  product={product}
+                  onEdit={onEditProduct}
+                  onDelete={handleDeleteProduct}
+                  onView={(product) => setSelectedProduct(product)}
+                  formatPrice={formatPrice}
+                />
+              ))}
+            </div>
           </div>
         ) : (
-          // List layout (original)
-          <div className="space-y-4">
-            {filteredProducts.map((product) => (
-              <ProductListItem
-                key={product.id}
-                product={product}
-                onEdit={onEditProduct}
-                onDelete={handleDeleteProduct}
-                onView={(product) => setSelectedProduct(product)}
-                formatPrice={formatPrice}
-              />
-            ))}
+          // List layout with proper containment
+          <div className="w-full overflow-hidden">
+            <div className="space-y-4 w-full">
+              {filteredProducts.map((product) => (
+                <ProductListItem
+                  key={product.id}
+                  product={product}
+                  onEdit={onEditProduct}
+                  onDelete={handleDeleteProduct}
+                  onView={(product) => setSelectedProduct(product)}
+                  formatPrice={formatPrice}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -183,10 +187,10 @@ interface ProductListItemProps {
 
 function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: ProductListItemProps) {
   return (
-    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow w-full min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4 w-full min-w-0">
         {/* Product Image */}
-        <div className="w-full sm:w-20 h-48 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+        <div className="w-full sm:w-12 h-24 sm:h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
           <ResponsiveImage
             src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
             alt={product.name}
@@ -196,11 +200,13 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
         </div>
 
         {/* Basic Product Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2">
-            <div className="mb-2 sm:mb-0">
-              <h3 className="font-semibold text-lg">{product.name}</h3>
-              <div className="flex items-center gap-2 mt-1">
+        <div className="flex-1 min-w-0 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 w-full min-w-0">
+            <div className="mb-2 sm:mb-0 min-w-0 flex-1">
+              <h3 className="font-semibold text-lg truncate w-full" title={product.name}>
+                {product.name}
+              </h3>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant="secondary">{product.category}</Badge>
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -210,7 +216,7 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
                 </div>
               </div>
             </div>
-            <div className="text-left sm:text-right">
+            <div className="text-left sm:text-right flex-shrink-0 sm:ml-4">
               {formatPrice(product.price, product.originalPrice)}
               <p className="text-sm text-muted-foreground mt-1">
                 {product.images.length} image{product.images.length !== 1 ? 's' : ''}
@@ -219,7 +225,7 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
           </div>
 
           {/* Sizes and Colors */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-2">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-2 w-full">
             <div className="flex items-center gap-1">
               <Ruler className="h-4 w-4" />
               <span>{product.sizes.length} sizes</span>
@@ -237,13 +243,13 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
           </div>
 
           {/* Description Preview */}
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-sm text-muted-foreground line-clamp-2 w-full min-w-0">
             {product.description || 'No description available'}
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-row sm:flex-col gap-2 justify-center sm:items-center">
+        <div className="flex flex-row sm:flex-col gap-2 justify-center sm:items-center flex-shrink-0 sm:ml-4">
           <Button
             variant="outline"
             size="sm"
@@ -304,63 +310,74 @@ interface ProductGridItemProps {
 
 function ProductGridItem({ product, onEdit, onDelete, onView, formatPrice }: ProductGridItemProps) {
   return (
-    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white">
+    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-black text-white w-full min-w-0">
       {/* Product Image */}
-      <div className="aspect-square bg-gray-100 overflow-hidden">
+      <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
         <ResponsiveImage
           src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
           alt={product.name}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           priority={true}
         />
       </div>
 
       {/* Product Details */}
-      <div className="p-4 space-y-3">
-        {/* Header */}
-        <div>
-          <h3 className="font-semibold text-sm truncate">{product.name}</h3>
-          <div className="flex items-center justify-between mt-1">
-            <Badge variant="secondary" className="text-xs">{product.category}</Badge>
-            <div className="text-right">
-              {formatPrice(product.price, product.originalPrice)}
+      <div className="p-3 space-y-2 w-full min-w-0">
+        {/* Product Name and Price */}
+        <div className="w-full min-w-0">
+          <h3 className="font-semibold text-sm truncate w-full" title={product.name}>
+            {product.name}
+          </h3>
+          <div className="flex items-center justify-between mt-1 w-full">
+            <Badge variant="secondary" className="text-xs flex-shrink-0">
+              {product.category}
+            </Badge>
+            <div className="text-right flex-shrink-0 ml-2">
+              <div className="text-sm font-semibold">
+                R{product.price.toFixed(2)}
+              </div>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <div className="text-xs text-muted-foreground line-through">
+                  R{product.originalPrice.toFixed(2)}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
+        {/* Stats Row */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
             <span>{product.rating}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Package className="h-3 w-3" />
             <span className={product.inStock ? 'text-green-600' : 'text-red-600'}>
-              {product.inStock ? 'In Stock' : 'Out of Stock'}
+              {product.inStock ? 'Stock' : 'Out'}
             </span>
           </div>
         </div>
 
-        {/* Sizes and Colors */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
+        {/* Attributes Row */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Ruler className="h-3 w-3" />
             <span>{product.sizes.length} sizes</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Palette className="h-3 w-3" />
             <span>{product.colors.length} colors</span>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-2 pt-2">
+        <div className="grid grid-cols-3 gap-1 pt-2 w-full">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onView?.(product)}
-            className="text-xs"
+            className="text-xs h-7 px-2"
           >
             <Eye className="h-3 w-3" />
           </Button>
@@ -368,13 +385,13 @@ function ProductGridItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
             variant="outline"
             size="sm"
             onClick={() => onEdit?.(product)}
-            className="text-xs"
+            className="text-xs h-7 px-2"
           >
             <Edit className="h-3 w-3" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 text-xs">
+              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 text-xs h-7 px-2">
                 <Trash2 className="h-3 w-3" />
               </Button>
             </AlertDialogTrigger>

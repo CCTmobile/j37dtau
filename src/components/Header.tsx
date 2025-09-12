@@ -7,6 +7,8 @@ import { Badge } from './ui/badge';
 import { useCart } from '../utils/cartUtils';
 import { useTheme } from '../utils/ThemeContext';
 import { VerificationBadge } from './VerificationBanner';
+import { NotificationCenter } from './notifications/NotificationCenter';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -20,6 +22,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { cart } = useCart();
+  const { user } = useAuth();
   
   const actualCartItemCount = cart?.reduce((total, item) => total + item.quantity, 0) || cartItemCount;
 
@@ -98,6 +101,11 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
                 <Moon className="h-5 w-5" />
               )}
             </Button>
+
+            {/* Notifications - only show for authenticated users */}
+            {user && (
+              <NotificationCenter className="rounded-full hover:bg-muted" />
+            )}
 
             {/* Cart */}
             <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted">
