@@ -21,6 +21,7 @@ import { ThemeProvider } from './utils/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProductProvider, useProducts } from './contexts/ProductContext';
 import { CartProvider, useCart } from './contexts/CartContext';
+import { ContentProvider } from './contexts/ContentContext';
 import { AuthModal } from './components/AuthModal';
 import { ProductImage } from './components/ui/responsive-image';
 import { BottomSpacer } from './components/ui/bottom-spacer';
@@ -332,6 +333,7 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [infoPage, setInfoPage] = useState<string>('about');
   const [authModalConfig, setAuthModalConfig] = useState({
     mode: 'login' as 'login' | 'signup',
     title: 'Sign In Required',
@@ -513,7 +515,7 @@ function AppContent() {
       case 'admin':
         return isAdmin ? <AdminDashboard products={products} /> : null;
       case 'info':
-        return <InformationCenter onBack={() => setCurrentPage('home')} />;
+        return <InformationCenter onBack={() => setCurrentPage('home')} initialPage={infoPage} />;
       default:
         return null;
     }
@@ -524,7 +526,10 @@ function AppContent() {
       <Header
         onSearch={setSearchQuery}
         onProfileClick={handleProfileClick}
-        onInfoClick={() => setCurrentPage('info')}
+        onInfoClick={() => {
+          setInfoPage('about');
+          setCurrentPage('info');
+        }}
       />
 
       <main className="flex-1 pb-28 md:pb-4">
@@ -532,8 +537,8 @@ function AppContent() {
       </main>
 
       <Footer onInfoClick={(page) => {
+        setInfoPage(page);
         setCurrentPage('info');
-        // Note: In a full implementation, you'd also set the initial page for InformationCenter
       }} />
 
       <BottomNav
@@ -562,9 +567,11 @@ export default function App() {
     <AuthProvider>
       <ProductProvider>
         <CartProvider>
-          <ThemeProvider>
-            <AppContent />
-          </ThemeProvider>
+          <ContentProvider>
+            <ThemeProvider>
+              <AppContent />
+            </ThemeProvider>
+          </ContentProvider>
         </CartProvider>
       </ProductProvider>
     </AuthProvider>

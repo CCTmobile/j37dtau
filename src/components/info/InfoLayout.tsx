@@ -8,6 +8,7 @@ interface InfoLayoutProps {
   title: string;
   description?: string;
   onBack: () => void;
+  onNavigate?: (page: string) => void;
 }
 
 const infoPages = [
@@ -62,7 +63,7 @@ const infoPages = [
   }
 ];
 
-export function InfoLayout({ children, title, description, onBack }: InfoLayoutProps) {
+export function InfoLayout({ children, title, description, onBack, onNavigate }: InfoLayoutProps) {
   const [showSidebar, setShowSidebar] = useState(false);
 
   const categories = Array.from(new Set(infoPages.map(page => page.category)));
@@ -92,7 +93,7 @@ export function InfoLayout({ children, title, description, onBack }: InfoLayoutP
                     variant="ghost"
                     className="w-full justify-start h-auto p-3 text-left"
                     onClick={() => {
-                      // Navigation logic will be implemented later
+                      onNavigate?.(page.id);
                       setShowSidebar(false);
                     }}
                   >

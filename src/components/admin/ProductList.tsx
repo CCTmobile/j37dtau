@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { Edit, Trash2, Search, Eye, Star, Package, Palette, Ruler, AlertTriangle } from 'lucide-react';
+import { Edit, Trash2, Search, Eye, Star, Package, Palette, Ruler, AlertTriangle, Grid3X3, List } from 'lucide-react';
 import { ResponsiveImage } from '../ui/responsive-image';
 import { toast } from 'sonner';
 import { deleteProduct } from '../../utils/supabase/client';
@@ -22,6 +22,7 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // Filter products based on search and category
   const filteredProducts = products.filter(product => {
@@ -75,7 +76,7 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
             <Input
               placeholder="Search products..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -93,22 +94,57 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
               <SelectItem value="Accessories">Accessories</SelectItem>
             </SelectContent>
           </Select>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        <div className="space-y-4">
-          {filteredProducts.map((product) => (
-            <ProductListItem
-              key={product.id}
-              product={product}
-              onEdit={onEditProduct}
-              onDelete={handleDeleteProduct}
-              onView={(product) => setSelectedProduct(product)}
-              formatPrice={formatPrice}
-            />
-          ))}
-        </div>
+        {viewMode === 'grid' ? (
+          // Grid layout for better mobile experience
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredProducts.map((product) => (
+              <ProductGridItem
+                key={product.id}
+                product={product}
+                onEdit={onEditProduct}
+                onDelete={handleDeleteProduct}
+                onView={(product) => setSelectedProduct(product)}
+                formatPrice={formatPrice}
+              />
+            ))}
+          </div>
+        ) : (
+          // List layout (original)
+          <div className="space-y-4">
+            {filteredProducts.map((product) => (
+              <ProductListItem
+                key={product.id}
+                product={product}
+                onEdit={onEditProduct}
+                onDelete={handleDeleteProduct}
+                onView={(product) => setSelectedProduct(product)}
+                formatPrice={formatPrice}
+              />
+            ))}
+          </div>
+        )}
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
@@ -148,9 +184,9 @@ interface ProductListItemProps {
 function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: ProductListItemProps) {
   return (
     <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
         {/* Product Image */}
-        <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
+        <div className="w-full sm:w-20 h-48 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
           <ResponsiveImage
             src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
             alt={product.name}
@@ -161,9 +197,9 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
 
         {/* Basic Product Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <div>
-              <h3 className="font-semibold text-lg truncate pr-4">{product.name}</h3>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2">
+            <div className="mb-2 sm:mb-0">
+              <h3 className="font-semibold text-lg">{product.name}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="secondary">{product.category}</Badge>
                 <div className="flex items-center gap-1">
@@ -174,7 +210,7 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
                 </div>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               {formatPrice(product.price, product.originalPrice)}
               <p className="text-sm text-muted-foreground mt-1">
                 {product.images.length} image{product.images.length !== 1 ? 's' : ''}
@@ -183,7 +219,7 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
           </div>
 
           {/* Sizes and Colors */}
-          <div className="flex items-center gap-6 text-sm text-muted-foreground mb-2">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-2">
             <div className="flex items-center gap-1">
               <Ruler className="h-4 w-4" />
               <span>{product.sizes.length} sizes</span>
@@ -194,7 +230,9 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
             </div>
             <div className="flex items-center gap-1">
               <Package className="h-4 w-4" />
-              <span>{product.inStock ? 'In Stock' : 'Out of Stock'}</span>
+              <span className={product.inStock ? 'text-green-600' : 'text-red-600'}>
+                {product.inStock ? 'In Stock' : 'Out of Stock'}
+              </span>
             </div>
           </div>
 
@@ -205,28 +243,139 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-row sm:flex-col gap-2 justify-center sm:items-center">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onView?.(product)}
+            className="flex-1 sm:flex-none"
           >
-            <Eye className="h-4 w-4 mr-1" />
-            View
+            <Eye className="h-4 w-4 mr-1 sm:mr-0" />
+            <span className="sm:hidden">View</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit?.(product)}
+            className="flex-1 sm:flex-none"
           >
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
+            <Edit className="h-4 w-4 mr-1 sm:mr-0" />
+            <span className="sm:hidden">Edit</span>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
+              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 flex-1 sm:flex-none">
+                <Trash2 className="h-4 w-4 mr-1 sm:mr-0" />
+                <span className="sm:hidden">Delete</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{product.name}"? This action cannot be undone and will also delete all associated images.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete?.(product.id, product.name)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete Product
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Individual product grid item component for responsive mobile layout
+interface ProductGridItemProps {
+  product: Product;
+  onEdit?: (product: Product) => void;
+  onDelete?: (productId: string, productName: string) => void;
+  onView?: (product: Product) => void;
+  formatPrice: (price: number, originalPrice?: number) => React.ReactElement;
+}
+
+function ProductGridItem({ product, onEdit, onDelete, onView, formatPrice }: ProductGridItemProps) {
+  return (
+    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white">
+      {/* Product Image */}
+      <div className="aspect-square bg-gray-100 overflow-hidden">
+        <ResponsiveImage
+          src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
+          alt={product.name}
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          priority={true}
+        />
+      </div>
+
+      {/* Product Details */}
+      <div className="p-4 space-y-3">
+        {/* Header */}
+        <div>
+          <h3 className="font-semibold text-sm truncate">{product.name}</h3>
+          <div className="flex items-center justify-between mt-1">
+            <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+            <div className="text-right">
+              {formatPrice(product.price, product.originalPrice)}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+            <span>{product.rating}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Package className="h-3 w-3" />
+            <span className={product.inStock ? 'text-green-600' : 'text-red-600'}>
+              {product.inStock ? 'In Stock' : 'Out of Stock'}
+            </span>
+          </div>
+        </div>
+
+        {/* Sizes and Colors */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Ruler className="h-3 w-3" />
+            <span>{product.sizes.length} sizes</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Palette className="h-3 w-3" />
+            <span>{product.colors.length} colors</span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-3 gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onView?.(product)}
+            className="text-xs"
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit?.(product)}
+            className="text-xs"
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 text-xs">
+                <Trash2 className="h-3 w-3" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -272,7 +421,7 @@ function ProductDetailModal({ product }: ProductDetailModalProps) {
           />
           {product.images.length > 1 && (
             <div className="grid grid-cols-4 gap-2 mt-4">
-              {product.images.slice(1, 5).map((image, index) => (
+              {product.images.slice(1, 5).map((image: string, index: number) => (
                 <ResponsiveImage
                   key={index}
                   src={image}
@@ -319,7 +468,7 @@ function ProductDetailModal({ product }: ProductDetailModalProps) {
         <div>
           <h3 className="font-medium mb-2">Available Sizes</h3>
           <div className="flex flex-wrap gap-1">
-            {product.sizes.map((size) => (
+            {product.sizes.map((size: string) => (
               <Badge key={size} variant="outline">{size}</Badge>
             ))}
           </div>
@@ -328,7 +477,7 @@ function ProductDetailModal({ product }: ProductDetailModalProps) {
         <div>
           <h3 className="font-medium mb-2">Available Colors</h3>
           <div className="flex flex-wrap gap-1">
-            {product.colors.map((color) => (
+            {product.colors.map((color: string) => (
               <Badge key={color} variant="outline">{color}</Badge>
             ))}
           </div>

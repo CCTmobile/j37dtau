@@ -253,6 +253,70 @@ export interface Database {
           updated_at?: string
         }
       }
+      content_pages: {
+        Row: {
+          id: string
+          page_type: string
+          page_data: Json
+          version: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          page_type: string
+          page_data: Json
+          version?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          page_type?: string
+          page_data?: Json
+          version?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+      }
+      content_versions: {
+        Row: {
+          id: string
+          content_page_id: string
+          version_number: number
+          page_data: Json
+          change_summary: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          content_page_id: string
+          version_number: number
+          page_data: Json
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          content_page_id?: string
+          version_number?: number
+          page_data?: Json
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -274,6 +338,18 @@ export interface Database {
           p_shipping_address: Json
         }
         Returns: string
+      }
+      get_active_content: {
+        Args: {
+          page_type_param: string
+        }
+        Returns: Json
+      }
+      get_content_with_history: {
+        Args: {
+          page_type_param: string
+        }
+        Returns: Json
       }
     }
     Enums: {

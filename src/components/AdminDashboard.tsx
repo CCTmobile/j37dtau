@@ -46,13 +46,13 @@ export function AdminDashboard({ products, defaultTab = "overview" }: AdminDashb
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto p-1 bg-muted rounded-lg">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Overview</TabsTrigger>
+          <TabsTrigger value="products" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Products</TabsTrigger>
+          <TabsTrigger value="orders" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Orders</TabsTrigger>
+          <TabsTrigger value="analytics" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Analytics</TabsTrigger>
+          <TabsTrigger value="content" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Content</TabsTrigger>
+          <TabsTrigger value="settings" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">

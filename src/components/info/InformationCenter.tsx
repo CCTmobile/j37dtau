@@ -67,6 +67,7 @@ export function InformationCenter({ onBack, initialPage = 'about' }: Information
       title={getPageTitle()}
       description={getPageDescription()}
       onBack={onBack}
+      onNavigate={handleNavigate}
     >
       {renderContent()}
     </InfoLayout>
