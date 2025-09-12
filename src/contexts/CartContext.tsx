@@ -167,18 +167,36 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const removeItem = async (cartItemId: string): Promise<boolean> => {
     try {
+      console.log('CartContext removeItem called:', { cartItemId, isGuestCart });
       setLoading(true);
       setError(null);
 
-      if (isGuestCart) {
+      // Check actual Supabase session instead of just user object
+      const { supabase } = await import('../utils/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      const hasValidSession = session && session.user;
+      
+      console.log('Session check:', { hasValidSession, sessionExists: !!session, userExists: !!session?.user });
+
+      if (!hasValidSession) {
         // Handle guest cart - remove from local storage
-        const updatedItems = items.filter(item => item.productId !== cartItemId);
+        // cartItemId format: "productId|size|color"
+        const [productId, size, color] = cartItemId.split('|');
+        console.log('Removing from guest cart (no valid session):', { productId, size, color });
+        console.log('Current items before filter:', items);
+        const updatedItems = items.filter(item => 
+          !(item.productId === productId && item.size === size && item.color === color)
+        );
+        console.log('Updated items after filter:', updatedItems);
         setItems(updatedItems);
         saveGuestCart(updatedItems);
         return true;
       } else {
-        // Handle authenticated user - use Supabase
-        const success = await updateCartItemQuantity(cartItemId, 0); // Setting quantity to 0 removes the item
+        // Handle authenticated user - parse the identifier and use removeCartItem
+        const [productId, size, color] = cartItemId.split('|');
+        console.log('Removing from authenticated cart:', { productId, size, color });
+        const { removeCartItem } = await import('../utils/supabase/client');
+        const success = await removeCartItem(productId, size, color);
         
         if (success) {
           await fetchCart(); // Refresh cart after removing item
@@ -197,20 +215,38 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const updateItemQuantity = async (cartItemId: string, quantity: number): Promise<boolean> => {
     try {
+      console.log('CartContext updateItemQuantity called:', { cartItemId, quantity, isGuestCart });
       setLoading(true);
       setError(null);
 
-      if (isGuestCart) {
+      // Check actual Supabase session instead of just user object
+      const { supabase } = await import('../utils/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      const hasValidSession = session && session.user;
+      
+      console.log('Session check for update:', { hasValidSession, sessionExists: !!session, userExists: !!session?.user });
+
+      if (!hasValidSession) {
         // Handle guest cart - update in local storage
+        // cartItemId format: "productId|size|color"
+        const [productId, size, color] = cartItemId.split('|');
+        console.log('Updating guest cart item:', { productId, size, color, quantity });
+        console.log('Current items before update:', items);
         const updatedItems = items.map(item => 
-          item.productId === cartItemId ? { ...item, quantity } : item
+          (item.productId === productId && item.size === size && item.color === color) 
+            ? { ...item, quantity } 
+            : item
         );
+        console.log('Updated items after update:', updatedItems);
         setItems(updatedItems);
         saveGuestCart(updatedItems);
         return true;
       } else {
-        // Handle authenticated user - use Supabase
-        const success = await updateCartItemQuantity(cartItemId, quantity);
+        // Handle authenticated user - parse the identifier and use updateCartItemByVariant
+        const [productId, size, color] = cartItemId.split('|');
+        console.log('Updating authenticated cart item:', { productId, size, color, quantity });
+        const { updateCartItemByVariant } = await import('../utils/supabase/client');
+        const success = await updateCartItemByVariant(productId, quantity, size, color);
         
         if (success) {
           await fetchCart(); // Refresh cart after updating quantity

@@ -186,18 +186,18 @@ function ProductCatalog({
           <Card 
             key={product.id} 
             className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${
-              viewMode === 'list' ? 'flex' : ''
+              viewMode === 'list' ? 'flex' : 'flex flex-col h-full'
             }`}
             onClick={() => onViewProduct(product)}
           >
-            <CardContent className="p-0">
+            <CardContent className={`p-0 ${viewMode === 'grid' ? 'flex flex-col h-full' : ''}`}>
               <div className={`relative overflow-hidden ${
-                viewMode === 'list' ? 'w-32 flex-shrink-0' : 'rounded-t-lg'
+                viewMode === 'list' ? 'w-32 flex-shrink-0' : 'rounded-t-lg flex-shrink-0'
               }`}>
                 <ProductImage
                   images={product.images}
                   name={product.name}
-                  className={viewMode === 'list' ? 'w-32 h-32' : 'w-full h-48'}
+                  className={viewMode === 'list' ? 'w-32 h-32' : 'w-full aspect-[4/3]'}
                   priority={true}
                 />
                 <Button
@@ -218,14 +218,42 @@ function ProductCatalog({
                 )}
               </div>
               
-              <div className={`space-y-2 ${viewMode === 'list' ? 'p-4 flex-1' : 'p-4'}`}>
-                <div className="flex items-start justify-between">
-                  <h4 className="font-medium line-clamp-2">{product.name}</h4>
-                  {!product.inStock && (
-                    <Badge variant="secondary" className="text-xs">
-                      Out of Stock
-                    </Badge>
-                  )}
+              <div className={`space-y-2 ${viewMode === 'list' ? 'p-4 flex-1' : 'p-4 flex-1 flex flex-col justify-between'}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-medium line-clamp-2 flex-1 min-w-0">{product.name}</h4>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Image thumbnails as tiny circles - only show if there are multiple images */}
+                    {product.images.length > 1 && (
+                      <div className="flex gap-0.5 max-w-[60px] flex-wrap">
+                        {product.images.slice(0, 5).map((image, index) => (
+                          <div
+                            key={index}
+                            className="w-5 h-5 rounded-full overflow-hidden border border-gray-300 flex-shrink-0"
+                            style={{ minWidth: '20px', minHeight: '20px' }}
+                          >
+                            <img
+                              src={image}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          </div>
+                        ))}
+                        {product.images.length > 5 && (
+                          <div className="w-5 h-5 rounded-full bg-gray-200 border border-gray-300 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[8px] text-gray-600 font-bold leading-none">
+                              +
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!product.inStock && (
+                      <Badge variant="secondary" className="text-xs ml-1">
+                        Out of Stock
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-1">
@@ -365,24 +393,57 @@ function AppContent() {
 
   // Wrapper functions to adapt CartContext functions to Cart component expectations
   const handleUpdateQuantity = async (productId: string, size: string, color: string, quantity: number) => {
-    // Use the new updateCartItemByVariant function instead of fake IDs
-    const { updateCartItemByVariant } = await import('./utils/supabase/client');
-    const success = await updateCartItemByVariant(productId, quantity, size, color);
-    if (success) {
-      await fetchCart(); // Refresh cart after update
+    console.log('handleUpdateQuantity called:', { productId, size, color, quantity });
+    
+    // Find the cart item that matches the productId, size, and color
+    const cartItem = items.find(item => 
+      item.productId === productId && 
+      item.size === size && 
+      item.color === color
+    );
+    
+    if (cartItem) {
+      // Use | as separator since UUIDs contain hyphens
+      const identifier = `${productId}|${size}|${color}`;
+      console.log('Updating item with identifier:', identifier, 'to quantity:', quantity);
+      const success = await updateItemQuantity(identifier, quantity);
+      console.log('Update result:', success);
+      if (!success) {
+        toast.error('Failed to update item quantity');
+      }
     } else {
-      toast.error('Failed to update item quantity');
+      console.log('Item not found in cart for quantity update');
+      toast.error('Item not found in cart');
     }
   };
 
   const handleRemoveItem = async (productId: string, size: string, color: string) => {
-    // Use the new removeCartItem function instead of fake IDs  
-    const { removeCartItem } = await import('./utils/supabase/client');
-    const success = await removeCartItem(productId, size, color);
-    if (success) {
-      await fetchCart(); // Refresh cart after removal
+    console.log('handleRemoveItem called:', { productId, size, color });
+    
+    // Find the cart item that matches the productId, size, and color
+    const cartItem = items.find(item => 
+      item.productId === productId && 
+      item.size === size && 
+      item.color === color
+    );
+    
+    console.log('Found cart item:', cartItem);
+    console.log('Current items:', items);
+    
+    if (cartItem) {
+      // For guest carts, we can use productId as identifier since guest cart items don't have database IDs
+      // For authenticated users, we need to use a composite identifier or update CartContext to handle criteria
+      // Use | as separator since UUIDs contain hyphens
+      const identifier = `${productId}|${size}|${color}`;
+      console.log('Removing item with identifier:', identifier);
+      const success = await removeItem(identifier);
+      console.log('Remove result:', success);
+      if (!success) {
+        toast.error('Failed to remove item from cart');
+      }
     } else {
-      toast.error('Failed to remove item from cart');
+      console.log('Item not found in cart');
+      toast.error('Item not found in cart');
     }
   };
 
@@ -419,6 +480,7 @@ function AppContent() {
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
             onProceedToCheckout={handleProceedToCheckout}
+            onContinueShopping={() => setCurrentPage('catalog')}
           />
         );
       case 'checkout':
