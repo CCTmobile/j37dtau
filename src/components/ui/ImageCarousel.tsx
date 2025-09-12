@@ -178,15 +178,16 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
               <button
                 key={index}
                 onClick={() => {
-                  console.log('🎯 Indicator clicked: Moving to index', index);
+                  console.log('🎯 Indicator clicked: Moving from index', currentIndex, 'to index', index);
                   setCurrentIndex(index);
+                  setIsLoading(true); // Show loading while new image loads
                 }}
-                className={`w-2 h-2 rounded-full transition-colors duration-200 
+                className={`w-3 h-3 rounded-full transition-all duration-200 
                           ${index === currentIndex 
-                            ? 'bg-white' 
-                            : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                            ? 'bg-white shadow-lg scale-110' 
+                            : 'bg-white bg-opacity-60 hover:bg-opacity-80 hover:scale-105'
                           }`}
-                aria-label={`Go to image ${index + 1}`}
+                aria-label={`Go to image ${index + 1} of ${validImages.length}`}
               />
             ))}
           </div>

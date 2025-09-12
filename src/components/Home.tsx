@@ -292,7 +292,7 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
           <div className="text-center bg-secondary/30 dark:bg-secondary/10 rounded-xl p-4 md:p-6">
             <div className="text-3xl mb-3">🚚</div>
             <h4 className="font-semibold text-foreground mb-2">Free Shipping</h4>
-            <p className="text-sm text-muted-foreground">Free delivery on orders over R2500</p>
+            <p className="text-sm text-muted-foreground">Free delivery on Orders over R3500</p>
           </div>
 
           <div className="text-center bg-secondary/30 dark:bg-secondary/10 rounded-xl p-4 md:p-6">

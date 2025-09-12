@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
-import { ArrowLeft, Star, Heart, Share2, ShoppingBag, Plus, Minus, Truck, Shield, RotateCcw } from 'lucide-react';
-import { ImageGallery } from './ui/responsive-image';
+import { ArrowLeft, Star, Heart, Share2, ShoppingBag, Plus, Minus, Truck, Shield, RotateCcw, Copy, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '../App';
 
@@ -20,6 +19,75 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close share menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setShowShareMenu(false);
+      }
+    };
+
+    if (showShareMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showShareMenu]);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: `Check out this ${product.category.toLowerCase()}: ${product.name} - R${product.price}`,
+      url: window.location.href
+    };
+
+    try {
+      // Check if Web Share API is supported (mainly on mobile)
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast.success('Product shared successfully!');
+      } else {
+        // Show custom share menu for desktop
+        setShowShareMenu(!showShareMenu);
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      setShowShareMenu(!showShareMenu);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Product link copied to clipboard!');
+      setShowShareMenu(false);
+    } catch (error) {
+      console.error('Clipboard error:', error);
+      toast.error('Unable to copy link. Please copy the URL manually.');
+    }
+  };
+
+  const shareToWhatsApp = () => {
+    const message = encodeURIComponent(`Check out this ${product.category.toLowerCase()}: ${product.name} - R${product.price} ${window.location.href}`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const shareToTwitter = () => {
+    const text = encodeURIComponent(`Check out this ${product.category.toLowerCase()}: ${product.name} - R${product.price}`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const shareToFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+    setShowShareMenu(false);
+  };
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -60,12 +128,15 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
         {/* Product Images */}
         <div className="space-y-4">
           <div className="relative">
-            <ImageGallery
-              images={product.images}
-              alt={product.name}
-              className="w-full h-96 lg:h-[500px] rounded-lg overflow-hidden"
-              priority={true}
-            />
+            {/* Main Image Display */}
+            <div className="aspect-square overflow-hidden rounded-lg">
+              <img
+                src={product.images[selectedImageIndex] || product.images[0]}
+                alt={`${product.name} - Image ${selectedImageIndex + 1}`}
+                className="w-full h-full object-cover"
+                loading="eager"
+              />
+            </div>
             {product.originalPrice && (
               <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground z-10 shadow-lg">
                 {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
@@ -84,10 +155,13 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
               {product.images.map((image, index) => (
                 <button
                   key={index}
-                  onClick={() => setSelectedImageIndex(index)}
+                  onClick={() => {
+                    console.log('🖼️ ProductDetail: Thumbnail clicked, moving from index', selectedImageIndex, 'to index', index);
+                    setSelectedImageIndex(index);
+                  }}
                   className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all ${
                     selectedImageIndex === index
-                      ? 'border-primary shadow-md'
+                      ? 'border-primary shadow-md ring-2 ring-primary/20'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -271,10 +345,58 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
                 <Heart className={`h-4 w-4 mr-2 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                 {isLiked ? 'Saved' : 'Save'}
               </Button>
-              <Button variant="outline" className="flex-1">
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
+              
+              <div className="relative flex-1" ref={shareMenuRef}>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+                
+                {/* Custom Share Menu for Desktop */}
+                {showShareMenu && (
+                  <div className="absolute top-full mt-2 left-0 right-0 bg-white border rounded-lg shadow-lg z-10 overflow-hidden">
+                    <button
+                      onClick={copyToClipboard}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span className="text-sm">Copy Link</span>
+                    </button>
+                    
+                    <button
+                      onClick={shareToWhatsApp}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                    >
+                      <MessageCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm">Share on WhatsApp</span>
+                    </button>
+                    
+                    <button
+                      onClick={shareToTwitter}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                    >
+                      <div className="h-4 w-4 bg-blue-400 rounded-sm flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">𝕏</span>
+                      </div>
+                      <span className="text-sm">Share on X (Twitter)</span>
+                    </button>
+                    
+                    <button
+                      onClick={shareToFacebook}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                    >
+                      <div className="h-4 w-4 bg-blue-600 rounded-sm flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">f</span>
+                      </div>
+                      <span className="text-sm">Share on Facebook</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -284,7 +406,7 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
               <Truck className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm font-medium">Free Shipping</p>
-                <p className="text-xs text-muted-foreground">Orders over R2500</p>
+                <p className="text-xs text-muted-foreground">Orders over R3500</p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 bg-secondary/30 rounded-lg">

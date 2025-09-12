@@ -175,6 +175,15 @@ export function ImageGallery({
   const displayImages = images.slice(0, maxImages);
   const hasMore = images.length > maxImages;
 
+  // Debug logging for ImageGallery
+  console.log('🖼️ ImageGallery Debug:', {
+    totalImages: images.length,
+    selectedImage,
+    displayImages: displayImages.length,
+    hasMore,
+    images: images
+  });
+
   if (images.length === 0) {
     return (
       <div className={cn('bg-gray-100 flex items-center justify-center', className)}>
@@ -214,7 +223,10 @@ export function ImageGallery({
         {displayImages.map((image, index) => (
           <button
             key={index}
-            onClick={() => setSelectedImage(index)}
+            onClick={() => {
+              console.log('🖼️ ImageGallery: Thumbnail clicked, moving from index', selectedImage, 'to index', index);
+              setSelectedImage(index);
+            }}
             className={cn(
               'flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all',
               selectedImage === index

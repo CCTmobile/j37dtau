@@ -13,17 +13,27 @@ interface CartProps {
   onUpdateQuantity: (productId: string, size: string, color: string, quantity: number) => void;
   onRemoveItem: (productId: string, size: string, color: string) => void;
   onProceedToCheckout: () => void;
+  onContinueShopping?: () => void;
 }
 
-export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckout }: CartProps) {
+export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckout, onContinueShopping }: CartProps) {
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(null);
 
-  const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  // Calculate order totals with proper South African pricing
+  const productsTotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0); // VAT-inclusive total
   const discount = appliedDiscount?.amount || 0;
-  const shipping = subtotal > 100 ? 0 : 9.99;
-  const tax = (subtotal - discount) * 0.08;
-  const total = subtotal - discount + shipping + tax;
+  
+  // Calculate VAT (15%) - extract VAT from VAT-inclusive price
+  const vatAmount = (productsTotal * 15) / 115; // Extract 15% VAT from total
+  const subtotal = productsTotal - vatAmount; // VAT-exclusive amount
+  
+  // Shipping calculation: FREE for orders ≥ R3500 subtotal, R110 otherwise
+  const shippingCost = subtotal >= 3500 ? 0 : 110;
+  const shipping = shippingCost;
+  
+  // Final total: products total (VAT-inclusive) + shipping
+  const total = productsTotal - discount + shipping;
 
   const applyDiscount = () => {
     const discountCodes = {
@@ -54,7 +64,7 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
           <p className="text-muted-foreground mb-6">
             Looks like you haven't added anything to your cart yet.
           </p>
-          <Button onClick={() => window.history.back()}>
+          <Button onClick={onContinueShopping || (() => window.history.back())}>
             Continue Shopping
           </Button>
         </div>
@@ -195,8 +205,8 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
                 </div>
 
                 <div className="flex justify-between text-sm">
-                  <span>Tax</span>
-                  <span>R{tax.toFixed(2)}</span>
+                  <span>Tax (15% VAT)</span>
+                  <span>R{vatAmount.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -207,10 +217,10 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
                 <span>R{total.toFixed(2)}</span>
               </div>
 
-              {subtotal < 2500 && (
+              {subtotal < 3500 && (
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <p className="text-sm text-blue-600">
-                    Add R{(2500 - subtotal).toFixed(2)} more for FREE shipping!
+                    Add R{(3500 - subtotal).toFixed(2)} more for FREE shipping!
                   </p>
                 </div>
               )}
@@ -220,7 +230,7 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
               </Button>
 
               <div className="text-center">
-                <Button variant="link" onClick={() => window.history.back()}>
+                <Button variant="link" onClick={onContinueShopping || (() => window.history.back())}>
                   Continue Shopping
                 </Button>
               </div>
