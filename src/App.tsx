@@ -515,7 +515,7 @@ function AppContent() {
       case 'rewards':
         return user ? <Rewards /> : null;
       case 'admin':
-        return isAdmin ? <AdminDashboard products={products} /> : null;
+        return isAdmin ? <AdminDashboard /> : null;
       case 'info':
         return <InformationCenter onBack={() => setCurrentPage('home')} initialPage={infoPage} />;
       case 'debug':

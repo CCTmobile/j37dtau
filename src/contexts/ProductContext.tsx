@@ -1,5 +1,5 @@
  import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getProducts, getProduct, supabase } from '../utils/supabase/client';
+import { getProducts, getAllProducts, getProduct, supabase } from '../utils/supabase/client';
 import type { Product } from '../App';
 import type { Database } from '../utils/supabase/types';
 
@@ -10,6 +10,7 @@ type ProductContextType = {
   loading: boolean;
   error: string | null;
   fetchProducts: (category?: string) => Promise<void>;
+  fetchAllProducts: (category?: string) => Promise<void>; // Admin function to get all products
   fetchProduct: (id: string) => Promise<Product | null>;
 };
 
@@ -84,6 +85,77 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       setProducts(transformedProducts);
     } catch (err) {
       console.error('Error fetching products:', err);
+      setError('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Admin function to fetch ALL products including inactive ones
+  const fetchAllProducts = async (category?: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const supabaseProducts = await getAllProducts(category);
+      
+      // Transform Supabase products to match our Product type (same logic as fetchProducts)
+      const transformedProducts: Product[] = supabaseProducts.map((p: SupabaseProduct) => {
+        // Handle both old image_url format and new images array format
+        let images: string[] = [];
+
+        // First check if new images array exists and has content
+        if (p.images && Array.isArray(p.images) && p.images.length > 0) {
+          images = (p.images as any[])
+            .filter(img => img && typeof img === 'string' && img.trim() !== '')
+            .map(imgPath => {
+              // If already a full URL, use as-is
+              if (imgPath.startsWith('http')) {
+                return imgPath;
+              }
+              // Otherwise, construct Supabase storage URL
+              const cleanPath = imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
+              return supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+            });
+        }
+        // Fallback to old image_url format
+        else if (p.image_url && typeof p.image_url === 'string' && p.image_url.trim() !== '') {
+          const imgPath = p.image_url;
+          
+          // If it's already a full URL, use as-is
+          if (imgPath.startsWith('http')) {
+            images = [imgPath];
+          } else {
+            // Use Supabase storage helper to get public URL
+            const cleanPath = imgPath.startsWith('/images/') ? imgPath.substring(8) : 
+                             imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
+            const publicUrl = supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+            images = [publicUrl];
+          }
+        }
+        // Use placeholder if no images
+        else {
+          images = ['data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iMjAwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmaWxsPSIjOTc5N2E3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+Cjwvc3ZnPgo='];
+        }
+
+        return {
+          id: p.id,
+          name: p.name,
+          category: p.category as Product['category'],
+          price: p.price,
+          originalPrice: p.original_price || undefined, // Use actual original_price from database
+          images: images,
+          sizes: p.sizes || ['S', 'M', 'L'], // Use database sizes or default
+          colors: p.colors || ['Black', 'White'], // Use database colors or default
+          description: p.description || '',
+          reviews: [], // Reviews not implemented yet
+          rating: 4.5, // Default rating since not in DB schema
+          inStock: p.in_stock ?? true // Use database in_stock value or default to true
+        };
+      });
+      
+      setProducts(transformedProducts);
+    } catch (err) {
+      console.error('Error fetching all products:', err);
       setError('Failed to load products');
     } finally {
       setLoading(false);
@@ -166,7 +238,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <ProductContext.Provider value={{ products, loading, error, fetchProducts, fetchProduct }}>
+    <ProductContext.Provider value={{ products, loading, error, fetchProducts, fetchAllProducts, fetchProduct }}>
       {children}
     </ProductContext.Provider>
   );

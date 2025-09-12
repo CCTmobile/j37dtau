@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
@@ -10,17 +10,23 @@ import { ProductForm } from './admin/ProductForm';
 import { ProductList } from './admin/ProductList';
 import { AdminAccountSettings } from './admin/AdminAccountSettings';
 import { ContentManager } from './info/admin/ContentManager';
+import { useProducts } from '../contexts/ProductContext';
 import type { Product } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
 
 interface AdminDashboardProps {
-  products: Product[];
   defaultTab?: string;
 }
 
-export function AdminDashboard({ products, defaultTab = "overview" }: AdminDashboardProps) {
+export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps) {
+  const { products, fetchAllProducts } = useProducts();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
+
+  // Fetch all products (including inactive ones) for admin on mount
+  useEffect(() => {
+    fetchAllProducts();
+  }, [fetchAllProducts]);
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
@@ -28,7 +34,8 @@ export function AdminDashboard({ products, defaultTab = "overview" }: AdminDashb
   };
 
   const handleCreateSuccess = () => {
-    // Refresh products list - this will be handled by parent component
+    // Refresh products list for admin
+    fetchAllProducts();
     setEditingProduct(null);
     setShowEditForm(false);
   };
@@ -36,6 +43,10 @@ export function AdminDashboard({ products, defaultTab = "overview" }: AdminDashb
   const handleCancelEdit = () => {
     setEditingProduct(null);
     setShowEditForm(false);
+  };
+
+  const handleRefreshProducts = () => {
+    fetchAllProducts();
   };
 
   return (
@@ -74,7 +85,7 @@ export function AdminDashboard({ products, defaultTab = "overview" }: AdminDashb
               <ProductList
                 products={products}
                 onEditProduct={handleEditProduct}
-                onRefresh={() => window.location.reload()} // Simple refresh for now
+                onRefresh={handleRefreshProducts}
               />
             </div>
           </div>

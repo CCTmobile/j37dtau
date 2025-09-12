@@ -9,7 +9,8 @@ import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save, Crop } from 'lucide-react';
+import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save, Crop, ChevronDown } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import ImageUploadService, { ImageUploadOptions } from '../../utils/imageUpload';
 import { createProduct, updateProduct } from '../../utils/supabase/client';
 import { toast } from 'sonner';
@@ -385,7 +386,7 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-neutral-900/60 backdrop-blur border-neutral-800">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -400,152 +401,160 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="product-name">Product Name *</Label>
-            <Input
-              id="product-name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="category">Category</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value: Product['category']) =>
-                setFormData(prev => ({ ...prev, category: value }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Casual">Casual</SelectItem>
-                <SelectItem value="Party">Party</SelectItem>
-                <SelectItem value="Shoes">Shoes</SelectItem>
-                <SelectItem value="Outwear">Outwear</SelectItem>
-                <SelectItem value="Dresses">Dresses</SelectItem>
-                <SelectItem value="Accessories">Accessories</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="price">Price *</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="original-price">Original Price (for sales)</Label>
-              <Input
-                id="original-price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.originalPrice}
-                onChange={(e) => setFormData(prev => ({ ...prev, originalPrice: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="in-stock"
-              checked={formData.inStock}
-              onCheckedChange={(checked: boolean) => setFormData(prev => ({ ...prev, inStock: checked }))}
-            />
-            <Label htmlFor="in-stock">In Stock</Label>
-          </div>
-
-          {/* Sizes Management */}
-          <div>
-            <Label>Sizes</Label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={newSizeInput}
-                onChange={(e) => setNewSizeInput(e.target.value)}
-                placeholder="Add size (e.g., XL)"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSize())}
-              />
-              <Button type="button" variant="outline" onClick={addSize}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {formData.sizes.map((size) => (
-                <Badge key={size} variant="secondary" className="flex items-center gap-1">
-                  {size}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-transparent"
-                    onClick={() => removeSize(size)}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <Accordion type="multiple" defaultValue={["basic","pricing","inventory","media"]} className="w-full">
+            <AccordionItem value="basic">
+              <AccordionTrigger className="text-sm font-medium">Basic Information</AccordionTrigger>
+              <AccordionContent className="space-y-4 pt-2">
+                <div>
+                  <Label htmlFor="product-name">Product Name *</Label>
+                  <Input
+                    id="product-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value: Product['category']) =>
+                      setFormData(prev => ({ ...prev, category: value }))
+                    }
                   >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          {/* Colors Management */}
-          <div>
-            <Label>Colors</Label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={newColorInput}
-                onChange={(e) => setNewColorInput(e.target.value)}
-                placeholder="Add color (e.g., Red)"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addColor())}
-              />
-              <Button type="button" variant="outline" onClick={addColor}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {formData.colors.map((color) => (
-                <Badge key={color} variant="secondary" className="flex items-center gap-1">
-                  {color}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 hover:bg-transparent"
-                    onClick={() => removeColor(color)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          {/* Image Management */}
-          <div>
-            <Label>Product Images</Label>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Casual">Casual</SelectItem>
+                      <SelectItem value="Party">Party</SelectItem>
+                      <SelectItem value="Shoes">Shoes</SelectItem>
+                      <SelectItem value="Outwear">Outwear</SelectItem>
+                      <SelectItem value="Dresses">Dresses</SelectItem>
+                      <SelectItem value="Accessories">Accessories</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="pricing">
+              <AccordionTrigger className="text-sm font-medium">Pricing</AccordionTrigger>
+              <AccordionContent className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="price">Price *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.price}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="original-price">Original Price (for sales)</Label>
+                    <Input
+                      id="original-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.originalPrice}
+                      onChange={(e) => setFormData(prev => ({ ...prev, originalPrice: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="inventory">
+              <AccordionTrigger className="text-sm font-medium">Inventory & Variants</AccordionTrigger>
+              <AccordionContent className="space-y-5 pt-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="in-stock"
+                    checked={formData.inStock}
+                    onCheckedChange={(checked: boolean) => setFormData(prev => ({ ...prev, inStock: checked }))}
+                  />
+                  <Label htmlFor="in-stock">In Stock</Label>
+                </div>
+                <div>
+                  <Label>Sizes</Label>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      value={newSizeInput}
+                      onChange={(e) => setNewSizeInput(e.target.value)}
+                      placeholder="Add size (e.g., XL)"
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSize())}
+                    />
+                    <Button type="button" variant="outline" onClick={addSize}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.sizes.map((size) => (
+                      <Badge key={size} variant="secondary" className="flex items-center gap-1">
+                        {size}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => removeSize(size)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label>Colors</Label>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      value={newColorInput}
+                      onChange={(e) => setNewColorInput(e.target.value)}
+                      placeholder="Add color (e.g., Red)"
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addColor())}
+                    />
+                    <Button type="button" variant="outline" onClick={addColor}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.colors.map((color) => (
+                      <Badge key={color} variant="secondary" className="flex items-center gap-1">
+                        {color}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => removeColor(color)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="media">
+              <AccordionTrigger className="text-sm font-medium">Media & Images</AccordionTrigger>
+              <AccordionContent className="space-y-4 pt-2">
+                <div>
+                  <Label>Product Images</Label>
 
             {/* Existing Images */}
             {existingImages.length > 0 && (
@@ -696,7 +705,10 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
             )}
           </div>
 
-          <div className="flex gap-4 pt-4">
+          </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+          <div className="flex gap-4 pt-2">
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
                 Cancel

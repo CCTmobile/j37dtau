@@ -34,15 +34,20 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
 
   const handleDeleteProduct = async (productId: string, productName: string) => {
     try {
+      console.log('🗑️ Attempting to delete product:', { productId, productName });
       const success = await deleteProduct(productId);
+      console.log('🗑️ Delete result:', success);
+      
       if (success) {
         toast.success(`Product "${productName}" deleted successfully`);
+        console.log('🔄 Calling onRefresh...');
         onRefresh?.();
       } else {
         toast.error('Failed to delete product');
+        console.error('❌ Delete function returned false');
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
+      console.error('❌ Error deleting product:', error);
       toast.error('Failed to delete product');
     }
   };
@@ -63,7 +68,7 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
   };
 
   return (
-    <Card>
+    <Card className="bg-neutral-900/60 backdrop-blur border-neutral-800">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Product Inventory ({filteredProducts.length})</CardTitle>
@@ -115,11 +120,11 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
         </div>
       </CardHeader>
 
-      <CardContent className="w-full overflow-hidden">
+      <CardContent className="w-full">
         {viewMode === 'grid' ? (
-          // Grid layout with proper containment
-          <div className="w-full overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 w-full">
+          // Grid layout with compact cards
+          <div className="w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 w-full">
               {filteredProducts.map((product) => (
                 <ProductGridItem
                   key={product.id}
@@ -133,19 +138,33 @@ export function ProductList({ products, onEditProduct, onRefresh }: ProductListP
             </div>
           </div>
         ) : (
-          // List layout with proper containment
-          <div className="w-full overflow-hidden">
-            <div className="space-y-4 w-full">
-              {filteredProducts.map((product) => (
-                <ProductListItem
-                  key={product.id}
-                  product={product}
-                  onEdit={onEditProduct}
-                  onDelete={handleDeleteProduct}
-                  onView={(product) => setSelectedProduct(product)}
-                  formatPrice={formatPrice}
-                />
-              ))}
+          // List layout - proper table format
+          <div className="w-full">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-800/70 text-neutral-300">
+                  <tr className="*:[&>th]:font-medium">
+                    <th className="px-3 py-2 text-left uppercase tracking-wide">Product</th>
+                    <th className="px-3 py-2 text-left uppercase tracking-wide hidden md:table-cell">Category</th>
+                    <th className="px-3 py-2 text-left uppercase tracking-wide">Price</th>
+                    <th className="px-3 py-2 text-left uppercase tracking-wide hidden sm:table-cell">Stock</th>
+                    <th className="px-3 py-2 text-left uppercase tracking-wide hidden lg:table-cell">Details</th>
+                    <th className="px-3 py-2 text-left uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-800">
+                  {filteredProducts.map((product) => (
+                    <ProductListItem
+                      key={product.id}
+                      product={product}
+                      onEdit={onEditProduct}
+                      onDelete={handleDeleteProduct}
+                      onView={(product) => setSelectedProduct(product)}
+                      formatPrice={formatPrice}
+                    />
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -187,92 +206,91 @@ interface ProductListItemProps {
 
 function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: ProductListItemProps) {
   return (
-    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow w-full min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4 w-full min-w-0">
-        {/* Product Image */}
-        <div className="w-full sm:w-12 h-24 sm:h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-          <ResponsiveImage
-            src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
-            alt={product.name}
-            className="w-full h-full object-cover"
-            priority={true}
-          />
-        </div>
-
-        {/* Basic Product Info */}
-        <div className="flex-1 min-w-0 w-full">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 w-full min-w-0">
-            <div className="mb-2 sm:mb-0 min-w-0 flex-1">
-              <h3 className="font-semibold text-lg truncate w-full" title={product.name}>
-                {product.name}
-              </h3>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <Badge variant="secondary">{product.category}</Badge>
-                <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm text-muted-foreground">
-                    {product.rating} ({product.reviews.length} reviews)
-                  </span>
-                </div>
-              </div>
+    <tr className="hover:bg-neutral-800/40 transition-colors">
+      {/* Product Info */}
+      <td className="px-3 py-3 align-top">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-12 w-12 rounded-md overflow-hidden bg-neutral-700">
+            <ResponsiveImage
+              src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
+              alt={product.name}
+              className="h-12 w-12 object-cover"
+              priority={true}
+            />
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-semibold text-neutral-200 max-w-[10rem] md:max-w-xs truncate" title={product.name}>
+              {product.name}
             </div>
-            <div className="text-left sm:text-right flex-shrink-0 sm:ml-4">
-              {formatPrice(product.price, product.originalPrice)}
-              <p className="text-sm text-muted-foreground mt-1">
-                {product.images.length} image{product.images.length !== 1 ? 's' : ''}
-              </p>
+            <div className="flex items-center gap-1 mt-1">
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-xs text-neutral-400">{product.rating}</span>
             </div>
           </div>
-
-          {/* Sizes and Colors */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-2 w-full">
-            <div className="flex items-center gap-1">
-              <Ruler className="h-4 w-4" />
-              <span>{product.sizes.length} sizes</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Palette className="h-4 w-4" />
-              <span>{product.colors.length} colors</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Package className="h-4 w-4" />
-              <span className={product.inStock ? 'text-green-600' : 'text-red-600'}>
-                {product.inStock ? 'In Stock' : 'Out of Stock'}
-              </span>
-            </div>
-          </div>
-
-          {/* Description Preview */}
-          <p className="text-sm text-muted-foreground line-clamp-2 w-full min-w-0">
-            {product.description || 'No description available'}
-          </p>
         </div>
+      </td>
 
-        {/* Action Buttons */}
-        <div className="flex flex-row sm:flex-col gap-2 justify-center sm:items-center flex-shrink-0 sm:ml-4">
+      {/* Category */}
+      <td className="px-3 py-3 hidden md:table-cell align-top">
+        <Badge variant="secondary" className="text-[10px] tracking-wide uppercase">
+          {product.category}
+        </Badge>
+      </td>
+
+      {/* Price */}
+      <td className="px-3 py-3 align-top">
+        <div className="text-sm text-neutral-200">
+          {formatPrice(product.price, product.originalPrice)}
+        </div>
+      </td>
+
+      {/* Stock */}
+      <td className="px-3 py-3 hidden sm:table-cell align-top">
+        <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+          product.inStock ? 'bg-green-500/15 text-green-300' : 'bg-red-500/15 text-red-300'
+        }`}>
+          {product.inStock ? 'In Stock' : 'Out'}
+        </div>
+      </td>
+
+      {/* Details */}
+      <td className="px-3 py-3 hidden lg:table-cell align-top text-[11px] text-neutral-400">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <Ruler className="h-3 w-3" />
+            {product.sizes.length} sizes
+          </span>
+          <span className="flex items-center gap-1">
+            <Palette className="h-3 w-3" />
+            {product.colors.length} colors
+          </span>
+          <span className="hidden xl:inline">{product.images.length} img</span>
+        </div>
+      </td>
+
+      {/* Actions */}
+      <td className="px-3 py-3 align-top text-right text-sm font-medium">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onView?.(product)}
-            className="flex-1 sm:flex-none"
+            className="h-8 w-8 p-0 bg-neutral-800/60 hover:bg-neutral-700 border-neutral-700"
           >
-            <Eye className="h-4 w-4 mr-1 sm:mr-0" />
-            <span className="sm:hidden">View</span>
+            <Eye className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit?.(product)}
-            className="flex-1 sm:flex-none"
+            className="h-8 w-8 p-0 bg-neutral-800/60 hover:bg-neutral-700 border-neutral-700"
           >
-            <Edit className="h-4 w-4 mr-1 sm:mr-0" />
-            <span className="sm:hidden">Edit</span>
+            <Edit className="h-4 w-4" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 flex-1 sm:flex-none">
-                <Trash2 className="h-4 w-4 mr-1 sm:mr-0" />
-                <span className="sm:hidden">Delete</span>
+              <Button variant="outline" size="sm" className="text-red-400 hover:text-red-300 h-8 w-8 p-0 bg-neutral-800/60 hover:bg-neutral-700 border-neutral-700">
+                <Trash2 className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -286,7 +304,7 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => onDelete?.(product.id, product.name)}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg border-red-600 focus:ring-red-500 focus:ring-2 relative z-10"
                 >
                   Delete Product
                 </AlertDialogAction>
@@ -294,8 +312,8 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 
@@ -310,74 +328,73 @@ interface ProductGridItemProps {
 
 function ProductGridItem({ product, onEdit, onDelete, onView, formatPrice }: ProductGridItemProps) {
   return (
-    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-black text-white w-full min-w-0">
+    <div className="border border-neutral-800 rounded-lg overflow-hidden hover:shadow-lg hover:shadow-black/30 transition-shadow bg-neutral-900/70 backdrop-blur w-full min-w-0">
       {/* Product Image */}
-      <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+      <div className="relative w-full aspect-square bg-neutral-800 overflow-hidden">
         <ResponsiveImage
           src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
           alt={product.name}
           className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           priority={true}
         />
+        
+        {/* Stock Badge */}
+        <div className="absolute top-2 right-2">
+          <div className={`px-2 py-1 rounded text-[10px] font-medium backdrop-blur-md ${
+            product.inStock ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+          }`}>
+            {product.inStock ? 'Stock' : 'Out'}
+          </div>
+        </div>
       </div>
 
       {/* Product Details */}
       <div className="p-3 space-y-2 w-full min-w-0">
-        {/* Product Name and Price */}
+        {/* Product Name and Category */}
         <div className="w-full min-w-0">
-          <h3 className="font-semibold text-sm truncate w-full" title={product.name}>
+          <h3 className="font-medium text-sm truncate w-full text-neutral-200" title={product.name}>
             {product.name}
           </h3>
-          <div className="flex items-center justify-between mt-1 w-full">
-            <Badge variant="secondary" className="text-xs flex-shrink-0">
-              {product.category}
-            </Badge>
-            <div className="text-right flex-shrink-0 ml-2">
-              <div className="text-sm font-semibold">
-                R{product.price.toFixed(2)}
-              </div>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <div className="text-xs text-muted-foreground line-through">
-                  R{product.originalPrice.toFixed(2)}
-                </div>
-              )}
-            </div>
-          </div>
+          <Badge variant="secondary" className="text-[10px] mt-1 uppercase tracking-wide">
+            {product.category}
+          </Badge>
         </div>
 
-        {/* Stats Row */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
-          <div className="flex items-center gap-1 flex-shrink-0">
+        {/* Price */}
+        <div className="text-sm font-semibold text-neutral-100">
+          R{product.price.toFixed(2)}
+          {product.originalPrice && product.originalPrice > product.price && (
+            <span className="text-xs text-neutral-500 line-through ml-2">
+              R{product.originalPrice.toFixed(2)}
+            </span>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center justify-between text-[11px] text-neutral-400 w-full">
+          <div className="flex items-center gap-1">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
             <span>{product.rating}</span>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Package className="h-3 w-3" />
-            <span className={product.inStock ? 'text-green-600' : 'text-red-600'}>
-              {product.inStock ? 'Stock' : 'Out'}
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <Ruler className="h-3 w-3" />
+              {product.sizes.length}
+            </span>
+            <span className="flex items-center gap-1">
+              <Palette className="h-3 w-3" />
+              {product.colors.length}
             </span>
           </div>
         </div>
 
-        {/* Attributes Row */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Ruler className="h-3 w-3" />
-            <span>{product.sizes.length} sizes</span>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Palette className="h-3 w-3" />
-            <span>{product.colors.length} colors</span>
-          </div>
-        </div>
-
         {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-1 pt-2 w-full">
+        <div className="grid grid-cols-3 gap-1 pt-1 w-full">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onView?.(product)}
-            className="text-xs h-7 px-2"
+            className="text-[11px] h-7 px-2 bg-neutral-800/60 hover:bg-neutral-700 border-neutral-700"
           >
             <Eye className="h-3 w-3" />
           </Button>
@@ -385,13 +402,13 @@ function ProductGridItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
             variant="outline"
             size="sm"
             onClick={() => onEdit?.(product)}
-            className="text-xs h-7 px-2"
+            className="text-[11px] h-7 px-2 bg-neutral-800/60 hover:bg-neutral-700 border-neutral-700"
           >
             <Edit className="h-3 w-3" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 text-xs h-7 px-2">
+              <Button variant="outline" size="sm" className="text-red-400 hover:text-red-300 text-[11px] h-7 px-2 bg-neutral-800/60 hover:bg-neutral-700 border-neutral-700">
                 <Trash2 className="h-3 w-3" />
               </Button>
             </AlertDialogTrigger>
@@ -406,7 +423,7 @@ function ProductGridItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => onDelete?.(product.id, product.name)}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg border-red-600 focus:ring-red-500 focus:ring-2 relative z-10"
                 >
                   Delete Product
                 </AlertDialogAction>

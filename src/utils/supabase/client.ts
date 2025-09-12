@@ -51,7 +51,8 @@ export const getProducts = async (category?: string) => {
   try {
     let query = supabase
       .from('products')
-      .select('*');
+      .select('*')
+      .eq('is_active', true); // Only return active products for public view
     
     if (category && category !== 'All') {
       query = query.eq('category', category);
@@ -62,6 +63,29 @@ export const getProducts = async (category?: string) => {
     return data || [];
   } catch (error) {
     console.error('Error fetching products:', error);
+    return [];
+  }
+};
+
+// Helper function to get all products including inactive ones (admin only)
+export const getAllProducts = async (category?: string) => {
+  try {
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) throw new Error('Unauthorized');
+
+    let query = supabase
+      .from('products')
+      .select('*'); // Return all products including inactive ones
+    
+    if (category && category !== 'All') {
+      query = query.eq('category', category);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching all products:', error);
     return [];
   }
 };
@@ -653,38 +677,41 @@ export const updateProduct = async (productId: string, updates: any) => {
 // Helper function to delete a product (admin only)
 export const deleteProduct = async (productId: string) => {
   try {
+    console.log('🗑️ DeleteProduct: Starting soft deletion for product:', productId);
+    
     const isUserAdmin = await isAdmin();
-    if (!isUserAdmin) throw new Error('Unauthorized');
-
-    // First get the product to access its images
-    const product = await getProduct(productId) as { images?: string[] } | null;
-    if (!product) throw new Error('Product not found');
-
-    // Delete associated images from storage
-    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-      const deletePromises = product.images.map(async (imageUrl: string) => {
-        try {
-          // Import the ImageUploadService dynamically to avoid circular imports
-          const { default: ImageUploadService } = await import('../imageUpload');
-          await ImageUploadService.deleteImage(imageUrl);
-        } catch (error) {
-          console.warn(`Failed to delete image ${imageUrl}:`, error);
-          // Continue with other images even if one fails
-        }
-      });
-      await Promise.all(deletePromises);
+    if (!isUserAdmin) {
+      console.error('🗑️ DeleteProduct: User is not admin');
+      throw new Error('Unauthorized');
     }
+    console.log('🗑️ DeleteProduct: Admin check passed');
 
-    // Delete the product from database
-    const { error } = await supabase
-      .from('products')
-      .delete()
+    // First get the product to access its details
+    const product = await getProduct(productId);
+    if (!product) {
+      console.error('🗑️ DeleteProduct: Product not found');
+      throw new Error('Product not found');
+    }
+    console.log('🗑️ DeleteProduct: Product found:', product.name);
+
+    // Use soft delete - set is_active to false instead of hard delete
+    // This preserves the product for order history while hiding it from public view
+    console.log('🗑️ DeleteProduct: Performing soft delete (setting is_active = false)');
+    const { error } = await (supabase
+      .from('products') as any)
+      .update({ is_active: false })
       .eq('id', productId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('🗑️ DeleteProduct: Soft delete failed:', error);
+      throw error;
+    }
+    
+    console.log('🗑️ DeleteProduct: Successfully soft deleted product (is_active = false)');
+    console.log('🗑️ DeleteProduct: Product preserved for order history but hidden from public');
     return true;
   } catch (error) {
-    console.error('Error deleting product:', error);
+    console.error('🗑️ DeleteProduct: Error during soft delete:', error);
     return false;
   }
 };
