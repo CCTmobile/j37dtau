@@ -8,6 +8,7 @@ import { useCart } from '../utils/cartUtils';
 import { useTheme } from '../utils/ThemeContext';
 import { VerificationBadge } from './VerificationBanner';
 import { NotificationCenter } from './notifications/NotificationCenter';
+import ChatNotificationBell from './ChatNotificationBell';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
@@ -105,6 +106,11 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
             {/* Notifications - only show for authenticated users */}
             {user && (
               <NotificationCenter className="rounded-full hover:bg-muted" />
+            )}
+
+            {/* Chat Support - only show for authenticated users */}
+            {user && (
+              <ChatNotificationBell className="rounded-full hover:bg-muted" />
             )}
 
             {/* Cart */}

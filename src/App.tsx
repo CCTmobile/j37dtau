@@ -27,6 +27,7 @@ import { ProductImage } from './components/ui/responsive-image';
 import { BottomSpacer } from './components/ui/bottom-spacer';
 import { ToastProvider } from './components/notifications/ToastProvider';
 import { ImageDebugger } from './components/debug/ImageDebugger';
+import { FloatingChatButton } from './components/ChatNotificationBell';
 
 export type User = {
   id: string;
@@ -560,6 +561,9 @@ function AppContent() {
         description={authModalConfig.description}
         onSwitchMode={(newMode) => setAuthModalConfig(prev => ({ ...prev, mode: newMode }))}
       />
+
+      {/* Floating Chat Button - Available on all pages for quick access */}
+      <FloatingChatButton />
 
       <Toaster />
     </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Heart, Mail, Phone, MapPin, Shield, FileText, HelpCircle } from 'lucide-react';
+import { ChatTriggerButton } from './ChatNotificationBell';
 
 interface FooterProps {
   onInfoClick?: (page: string) => void;
@@ -80,21 +81,20 @@ export function Footer({ onInfoClick }: FooterProps) {
                 </button>
               </li>
               <li>
-                <button 
-                  onClick={() => handleInfoNavigation('help')}
-                  className="hover:text-white transition-colors flex items-center gap-2"
-                >
-                  <HelpCircle className="h-3 w-3" />
-                  FAQ & Support
-                </button>
+                <ChatTriggerButton
+                  text="Live Chat Support"
+                  variant="outline"
+                  className="text-sm py-2 px-3 border-slate-400 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-white"
+                  subject="FAQ & Support Inquiry"
+                />
               </li>
               <li>
-                <button 
-                  onClick={() => handleInfoNavigation('contact')}
-                  className="hover:text-white transition-colors"
-                >
-                  Contact Us
-                </button>
+                <ChatTriggerButton
+                  text="Contact Us"
+                  variant="primary"
+                  className="text-sm py-2 px-3"
+                  subject="General Contact Inquiry"
+                />
               </li>
             </ul>
           </div>
@@ -167,12 +167,12 @@ export function Footer({ onInfoClick }: FooterProps) {
             >
               Terms
             </button>
-            <button 
-              onClick={() => handleInfoNavigation('help')}
-              className="hover:text-white transition-colors"
-            >
-              Support
-            </button>
+            <ChatTriggerButton
+              text="Support"
+              variant="outline"
+              className="text-xs py-1 px-2 border-slate-400 text-slate-400 hover:bg-slate-700 hover:text-white hover:border-white"
+              subject="Footer Support Request"
+            />
           </div>
         </div>
       </div>

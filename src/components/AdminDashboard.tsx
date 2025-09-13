@@ -10,6 +10,7 @@ import { ProductForm } from './admin/ProductForm';
 import { ProductList } from './admin/ProductList';
 import { AdminAccountSettings } from './admin/AdminAccountSettings';
 import { ContentManager } from './info/admin/ContentManager';
+import AdminChatDashboard from './admin/AdminChatDashboard';
 import { useProducts } from '../contexts/ProductContext';
 import type { Product } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
@@ -57,12 +58,13 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto p-1 bg-muted rounded-lg">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 h-auto p-1 bg-muted rounded-lg">
           <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Overview</TabsTrigger>
           <TabsTrigger value="products" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Products</TabsTrigger>
           <TabsTrigger value="orders" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Orders</TabsTrigger>
           <TabsTrigger value="analytics" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Analytics</TabsTrigger>
           <TabsTrigger value="content" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Content</TabsTrigger>
+          <TabsTrigger value="messages" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Messages</TabsTrigger>
           <TabsTrigger value="settings" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Settings</TabsTrigger>
         </TabsList>
 
@@ -128,6 +130,14 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
 
         <TabsContent value="content">
           <ContentManager />
+        </TabsContent>
+
+        <TabsContent value="messages">
+          <Card className="h-[calc(100vh-240px)]">
+            <CardContent className="p-0 h-full">
+              <AdminChatDashboard />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="settings">
