@@ -17,9 +17,10 @@ import { BottomSpacer } from './ui/bottom-spacer';
 
 interface ProfileProps {
   onLogout: () => void;
+  onNavigateToInfo?: (page: string) => void;
 }
 
-export function Profile({ onLogout }: ProfileProps) {
+export function Profile({ onLogout, onNavigateToInfo }: ProfileProps) {
   const { user, loading, signOut } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -183,7 +184,17 @@ export function Profile({ onLogout }: ProfileProps) {
     { icon: MapPin, label: 'Addresses', action: () => toast.info('Address management coming soon!') },
     { icon: CreditCard, label: 'Payment Methods', action: () => toast.info('Payment methods coming soon!') },
     { icon: Bell, label: 'Notifications', action: () => toast.info('Notification settings coming soon!') },
-    { icon: Shield, label: 'Privacy & Security', action: () => toast.info('Privacy settings coming soon!') },
+    { 
+      icon: Shield, 
+      label: 'Privacy & Security', 
+      action: () => {
+        if (onNavigateToInfo) {
+          onNavigateToInfo('privacy');
+        } else {
+          toast.info('Privacy settings coming soon!');
+        }
+      }
+    },
   ];
 
   return (

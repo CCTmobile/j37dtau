@@ -457,6 +457,11 @@ function AppContent() {
     }
   };
 
+  const handleNavigateToInfo = (page: string) => {
+    setInfoPage(page);
+    setCurrentPage('info');
+  };
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'home':
@@ -510,7 +515,10 @@ function AppContent() {
         isAdmin ? (
           <AdminAccountSettings />
         ) : (
-          <Profile onLogout={() => {}} />
+          <Profile 
+            onLogout={() => {}} 
+            onNavigateToInfo={handleNavigateToInfo}
+          />
         )
       ) : null;
       case 'rewards':

@@ -46,13 +46,13 @@ export const getCurrentUser = async () => {
   }
 };
 
-// Helper function to get products
+// Helper function to get active products (not soft deleted)
 export const getProducts = async (category?: string) => {
   try {
     let query = supabase
       .from('products')
       .select('*')
-      .eq('is_active', true); // Only return active products for public view
+      .is('deleted_at', null); // Only return non-deleted products
     
     if (category && category !== 'All') {
       query = query.eq('category', category);
@@ -67,7 +67,7 @@ export const getProducts = async (category?: string) => {
   }
 };
 
-// Helper function to get all products including inactive ones (admin only)
+// Helper function to get all active products (admin only)
 export const getAllProducts = async (category?: string) => {
   try {
     const isUserAdmin = await isAdmin();
@@ -75,7 +75,8 @@ export const getAllProducts = async (category?: string) => {
 
     let query = supabase
       .from('products')
-      .select('*'); // Return all products including inactive ones
+      .select('*')
+      .is('deleted_at', null); // Return only active (non-deleted) products
     
     if (category && category !== 'All') {
       query = query.eq('category', category);
@@ -86,6 +87,31 @@ export const getAllProducts = async (category?: string) => {
     return data || [];
   } catch (error) {
     console.error('Error fetching all products:', error);
+    return [];
+  }
+};
+
+// Helper function to get deleted products (admin only)
+export const getDeletedProducts = async (category?: string) => {
+  try {
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) throw new Error('Unauthorized');
+
+    let query = supabase
+      .from('products')
+      .select('*')
+      .not('deleted_at', 'is', null) // Return only soft-deleted products
+      .order('deleted_at', { ascending: false }); // Most recently deleted first
+    
+    if (category && category !== 'All') {
+      query = query.eq('category', category);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching deleted products:', error);
     return [];
   }
 };
@@ -674,7 +700,7 @@ export const updateProduct = async (productId: string, updates: any) => {
   }
 };
 
-// Helper function to delete a product (admin only)
+// Helper function to soft delete a product (admin only)
 export const deleteProduct = async (productId: string) => {
   try {
     console.log('🗑️ DeleteProduct: Starting soft deletion for product:', productId);
@@ -694,12 +720,12 @@ export const deleteProduct = async (productId: string) => {
     }
     console.log('🗑️ DeleteProduct: Product found:', product.name);
 
-    // Use soft delete - set is_active to false instead of hard delete
-    // This preserves the product for order history while hiding it from public view
-    console.log('🗑️ DeleteProduct: Performing soft delete (setting is_active = false)');
+    // Use soft delete - set deleted_at timestamp
+    // This preserves the product for order history while moving it to deleted inventory
+    console.log('🗑️ DeleteProduct: Performing soft delete (setting deleted_at timestamp)');
     const { error } = await (supabase
       .from('products') as any)
-      .update({ is_active: false })
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', productId);
 
     if (error) {
@@ -707,11 +733,71 @@ export const deleteProduct = async (productId: string) => {
       throw error;
     }
     
-    console.log('🗑️ DeleteProduct: Successfully soft deleted product (is_active = false)');
-    console.log('🗑️ DeleteProduct: Product preserved for order history but hidden from public');
+    console.log('🗑️ DeleteProduct: Successfully soft deleted product');
+    console.log('🗑️ DeleteProduct: Product moved to deleted inventory');
     return true;
   } catch (error) {
     console.error('🗑️ DeleteProduct: Error during soft delete:', error);
+    return false;
+  }
+};
+
+// Helper function to restore a soft deleted product (admin only)
+export const restoreProduct = async (productId: string) => {
+  try {
+    console.log('🔄 RestoreProduct: Starting restore for product:', productId);
+    
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) {
+      console.error('🔄 RestoreProduct: User is not admin');
+      throw new Error('Unauthorized');
+    }
+
+    // Restore by setting deleted_at to null
+    const { error } = await (supabase
+      .from('products') as any)
+      .update({ deleted_at: null })
+      .eq('id', productId);
+
+    if (error) {
+      console.error('🔄 RestoreProduct: Restore failed:', error);
+      throw error;
+    }
+    
+    console.log('🔄 RestoreProduct: Successfully restored product');
+    return true;
+  } catch (error) {
+    console.error('🔄 RestoreProduct: Error during restore:', error);
+    return false;
+  }
+};
+
+// Helper function to permanently delete a product (admin only)
+export const permanentlyDeleteProduct = async (productId: string) => {
+  try {
+    console.log('💀 PermanentDelete: Starting permanent deletion for product:', productId);
+    
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) {
+      console.error('💀 PermanentDelete: User is not admin');
+      throw new Error('Unauthorized');
+    }
+
+    // Hard delete - completely remove from database
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+
+    if (error) {
+      console.error('💀 PermanentDelete: Permanent delete failed:', error);
+      throw error;
+    }
+    
+    console.log('💀 PermanentDelete: Successfully permanently deleted product');
+    return true;
+  } catch (error) {
+    console.error('💀 PermanentDelete: Error during permanent delete:', error);
     return false;
   }
 };

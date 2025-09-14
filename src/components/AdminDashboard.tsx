@@ -7,7 +7,7 @@ import { SalesChart } from './admin/SalesChart';
 import { CategoryChart } from './admin/CategoryChart';
 import { OrdersTable } from './admin/OrdersTable';
 import { ProductForm } from './admin/ProductForm';
-import { ProductList } from './admin/ProductList';
+import { ProductTabs } from './admin/ProductTabs';
 import { AdminAccountSettings } from './admin/AdminAccountSettings';
 import { ContentManager } from './info/admin/ContentManager';
 import AdminChatDashboard from './admin/AdminChatDashboard';
@@ -84,10 +84,8 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <ProductForm onSuccess={handleCreateSuccess} />
             <div className="lg:col-span-2">
-              <ProductList
-                products={products}
+              <ProductTabs
                 onEditProduct={handleEditProduct}
-                onRefresh={handleRefreshProducts}
               />
             </div>
           </div>
