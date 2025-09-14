@@ -135,6 +135,10 @@ class NotificationService {
     unreadOnly: boolean = false
   ): Promise<NotificationData[]> {
     try {
+      // Check if we're in development and show a one-time message
+      const isDevelopment = window.location.hostname === 'localhost' || 
+                           window.location.hostname.includes('localhost');
+      
       // Try database first
       const { data, error } = await (supabase as any)
         .from('notifications')
@@ -144,7 +148,11 @@ class NotificationService {
         .range(offset, offset + limit - 1);
 
       if (error) {
-        console.warn('Notifications table not available, using local storage:', error.message);
+        // Only log detailed error in development, and only once per session
+        if (isDevelopment && !sessionStorage.getItem('notifications_fallback_logged')) {
+          console.info('ℹ️ Notifications: Using localStorage fallback (database table not yet created)');
+          sessionStorage.setItem('notifications_fallback_logged', 'true');
+        }
         return this.getNotificationsFromLocalStorage(userId, limit, offset, unreadOnly);
       }
 
@@ -156,7 +164,6 @@ class NotificationService {
 
       return notifications;
     } catch (error) {
-      console.error('Error fetching notifications:', error);
       return this.getNotificationsFromLocalStorage(userId, limit, offset, unreadOnly);
     }
   }
@@ -205,14 +212,13 @@ class NotificationService {
         .eq('read_at', null);
 
       if (error) {
-        console.warn('Using localStorage for unread count:', error.message);
+        // Silent fallback - don't spam console with 404 errors
         const notifications = this.getNotificationsFromLocalStorage(userId, 1000, 0, true);
         return notifications.length;
       }
 
       return data?.length || 0;
     } catch (error) {
-      console.error('Error fetching unread count:', error);
       return 0;
     }
   }
@@ -423,9 +429,15 @@ class NotificationService {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Subscribed to notifications for user:', userId);
+          // Only log in development
+          const isDevelopment = window.location.hostname === 'localhost' || 
+                               window.location.hostname.includes('localhost');
+          if (isDevelopment && !sessionStorage.getItem('notifications_subscription_logged')) {
+            console.log('📧 Notifications: Real-time subscription active for user:', userId);
+            sessionStorage.setItem('notifications_subscription_logged', 'true');
+          }
         } else if (status === 'CHANNEL_ERROR' && onError) {
-          console.warn('Notification subscription error (table may not exist yet):', status);
+          // Silent error handling - the fallback system handles this
           onError(status);
         }
       });

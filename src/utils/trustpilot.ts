@@ -151,7 +151,7 @@ export const loadTrustpilotWidget = (
   trustbox.className = 'trustpilot-widget';
   trustbox.setAttribute('data-locale', 'en-US');
   trustbox.setAttribute('data-template-id', getTemplateId(widgetType));
-  trustbox.setAttribute('data-businessunit-id', 'jqNE0wslhWspQelA');
+  trustbox.setAttribute('data-businessunit-id', '66e3a5c8fe53e5eddc65b0fd');
   trustbox.setAttribute('data-style-height', options.height || '350px');
   trustbox.setAttribute('data-style-width', options.width || '100%');
   
@@ -197,6 +197,15 @@ export const initializeTrustpilotWidgets = (): void => {
 
 const loadWidgets = async (): Promise<void> => {
   try {
+    // Check if we're in development
+    const isDevelopment = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.hostname.includes('localhost');
+    
+    if (isDevelopment) {
+      console.info('🔧 Trustpilot Development Mode: Widgets may not load on localhost due to domain restrictions. This is expected behavior.');
+    }
+    
     await waitForTrustpilot();
     
     // Find all trustpilot widget containers and initialize them
@@ -249,6 +258,46 @@ export const trackPurchaseCompletion = async (orderData: {
     console.log('All Trustpilot invitations sent successfully');
   } catch (error) {
     console.error('Error sending Trustpilot invitations:', error);
+  }
+};
+
+/**
+ * Open Trustpilot review form for a specific product
+ */
+export const openProductReviewForm = (productSku: string, productName: string): void => {
+  try {
+    const baseUrl = 'https://rosemamaclothing.store';
+    const businessUnitId = '66e3a5c8fe53e5eddc65b0fd';
+    
+    // Create Trustpilot review URL for the specific product
+    const reviewUrl = `https://www.trustpilot.com/evaluate/${businessUnitId}` +
+      `?utm_medium=trustbox&utm_source=ProductReview` +
+      `&p=${encodeURIComponent(productName)}` +
+      `&s=${encodeURIComponent(productSku)}` +
+      `&r=${encodeURIComponent(`${baseUrl}/product/${productSku}`)}`;
+    
+    // Open in a new window/tab
+    window.open(reviewUrl, '_blank', 'width=800,height=700,scrollbars=yes,resizable=yes');
+    
+    console.log('Opened Trustpilot review form for product:', productSku);
+  } catch (error) {
+    console.error('Error opening Trustpilot review form:', error);
+  }
+};
+
+/**
+ * Open general business review form
+ */
+export const openBusinessReviewForm = (): void => {
+  try {
+    const businessUnitId = '66e3a5c8fe53e5eddc65b0fd';
+    const reviewUrl = `https://www.trustpilot.com/evaluate/${businessUnitId}`;
+    
+    window.open(reviewUrl, '_blank', 'width=800,height=700,scrollbars=yes,resizable=yes');
+    
+    console.log('Opened Trustpilot business review form');
+  } catch (error) {
+    console.error('Error opening Trustpilot business review form:', error);
   }
 };
 

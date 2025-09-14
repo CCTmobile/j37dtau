@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Star, ChevronRight, Sparkles, TrendingUp, Heart } from 'lucide-react';
 import { ResponsiveImage } from './ui/responsive-image';
 import { ProductCard } from './ui/ProductCard';
+import { TrustpilotWidget } from './ui/TrustpilotWidget';
 import type { Product, User } from '../App';
 import { useProducts } from '../contexts/ProductContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -316,44 +317,59 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
         </div>
       </div>
 
-      {/* Customer Reviews */}
+      {/* Real Customer Reviews - Trustpilot Widget */}
       <div className="px-4 md:px-6 lg:px-8">
         <div className="bg-gradient-to-r from-primary/5 to-secondary/5 dark:from-primary/10 dark:to-secondary/10 rounded-2xl p-4 md:p-8">
           <div className="text-center mb-8">
             <h3 className="text-xl md:text-2xl font-semibold text-foreground mb-2">What Our Customers Say</h3>
-            <p className="text-muted-foreground">Real reviews from satisfied fashion lovers</p>
+            <p className="text-muted-foreground">Real reviews from verified customers</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-white/50 dark:bg-card/50 rounded-xl">
-              <div className="flex justify-center mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground italic mb-3">"Amazing quality and fast delivery! My favorite online fashion store."</p>
-              <p className="font-semibold text-foreground">- Sarah M.</p>
-            </div>
+          {/* Trustpilot Service Review Widget */}
+          <div className="flex justify-center">
+            <TrustpilotWidget
+              widgetType="review-carousel"
+              width="100%"
+              height="200"
+              className="max-w-4xl"
+            />
+          </div>
 
-            <div className="text-center p-4 bg-white/50 dark:bg-card/50 rounded-xl">
-              <div className="flex justify-center mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
+          {/* Trust Score Display */}
+          <div className="text-center mt-6">
+            <div className="inline-flex items-center gap-3 bg-white/70 dark:bg-card/70 px-6 py-3 rounded-full border">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">T</span>
+                </div>
+                <span className="font-semibold text-foreground">Trustpilot</span>
               </div>
-              <p className="text-sm text-muted-foreground italic mb-3">"Great variety and the flash sales are incredible value!"</p>
-              <p className="font-semibold text-foreground">- John D.</p>
+              <div className="h-4 w-px bg-border"></div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-muted-foreground">Be the first to review us!</span>
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-3 w-3 text-gray-300 dark:text-gray-600" />
+                  ))}
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div className="text-center p-4 bg-white/50 dark:bg-card/50 rounded-xl">
-              <div className="flex justify-center mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground italic mb-3">"Love the personalized recommendations and Curated Collections."</p>
-              <p className="font-semibold text-foreground">- Lisa K.</p>
-            </div>
+          {/* Call to Action for Reviews */}
+          <div className="text-center mt-4">
+            <p className="text-sm text-muted-foreground mb-3">
+              Help other fashion lovers by sharing your experience
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://www.trustpilot.com/review/rosemamaclothing.store', '_blank')}
+              className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 hover:text-green-800"
+            >
+              <Star className="h-4 w-4 mr-1" />
+              Write a Review
+            </Button>
           </div>
         </div>
       </div>

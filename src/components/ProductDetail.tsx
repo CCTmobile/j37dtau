@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { Product } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
 import TrustpilotWidget from './ui/TrustpilotWidget';
+import { openProductReviewForm } from '../utils/trustpilot';
 
 interface ProductDetailProps {
   product: Product;
@@ -446,7 +447,13 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold">Customer Reviews</h3>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => openProductReviewForm(product.id, product.name)}
+                  className="flex items-center gap-2"
+                >
+                  <Star className="h-4 w-4" />
                   Write a Review
                 </Button>
               </div>
