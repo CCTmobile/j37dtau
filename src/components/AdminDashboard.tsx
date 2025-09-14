@@ -9,6 +9,7 @@ import { OrdersTable } from './admin/OrdersTable';
 import { ProductForm } from './admin/ProductForm';
 import { ProductTabs } from './admin/ProductTabs';
 import { AdminAccountSettings } from './admin/AdminAccountSettings';
+import { ReviewManagement } from './admin/ReviewManagement';
 import { ContentManager } from './info/admin/ContentManager';
 import AdminChatDashboard from './admin/AdminChatDashboard';
 import { useProducts } from '../contexts/ProductContext';
@@ -58,10 +59,11 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 h-auto p-1 bg-muted rounded-lg">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8 h-auto p-1 bg-muted rounded-lg">
           <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Overview</TabsTrigger>
           <TabsTrigger value="products" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Products</TabsTrigger>
           <TabsTrigger value="orders" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Orders</TabsTrigger>
+          <TabsTrigger value="reviews" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Reviews</TabsTrigger>
           <TabsTrigger value="analytics" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Analytics</TabsTrigger>
           <TabsTrigger value="content" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Content</TabsTrigger>
           <TabsTrigger value="messages" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Messages</TabsTrigger>
@@ -117,6 +119,10 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
               <OrdersTable showActions />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="reviews">
+          <ReviewManagement />
         </TabsContent>
 
         <TabsContent value="analytics">

@@ -11,6 +11,7 @@ import { ArrowLeft, CreditCard, Gift } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
 import { createOrderFromCart, createGuestOrder } from '../utils/supabase/client';
+import { trackPurchaseCompletion } from '../utils/trustpilot';
 import { useCart } from '../contexts/CartContext';
 import type { CartItem, User } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
@@ -133,6 +134,27 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
 
       if (!orderId) {
         throw new Error('Failed to create order');
+      }
+
+      // Send Trustpilot review invitations
+      try {
+        const customerName = `${shippingForm.firstName} ${shippingForm.lastName}`;
+        const customerEmail = shippingForm.email;
+        const products = items.map(item => ({
+          id: item.productId,
+          name: item.product.name,
+          image: item.product.images[0]
+        }));
+
+        await trackPurchaseCompletion({
+          customerEmail,
+          customerName,
+          orderId: orderId.toString(),
+          products
+        });
+      } catch (trustpilotError) {
+        console.warn('Failed to send Trustpilot invitations:', trustpilotError);
+        // Don't fail the order if Trustpilot fails
       }
 
       // Clear cart after successful order

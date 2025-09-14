@@ -7,6 +7,7 @@ import { ArrowLeft, Star, Heart, Share2, ShoppingBag, Plus, Minus, Truck, Shield
 import { toast } from 'sonner';
 import type { Product } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
+import TrustpilotWidget from './ui/TrustpilotWidget';
 
 interface ProductDetailProps {
   product: Product;
@@ -439,45 +440,30 @@ export function ProductDetail({ product, onAddToCart, onBack }: ProductDetailPro
           </CardContent>
         </Card>
 
-        {/* Reviews */}
+        {/* Customer Reviews - Trustpilot */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold">Customer Reviews</h3>
-              <Button variant="outline">Write a Review</Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  Write a Review
+                </Button>
+              </div>
             </div>
             
-            {product.reviews.length > 0 ? (
-              <div className="space-y-4">
-                {product.reviews.map((review) => (
-                  <div key={review.id} className="border-b pb-4 last:border-b-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{review.userName}</span>
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-3 w-3 ${
-                                i < review.rating 
-                                  ? 'fill-yellow-400 text-yellow-400' 
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <span className="text-sm text-muted-foreground">{review.date}</span>
-                    </div>
-                    <p className="text-muted-foreground">{review.comment}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No reviews yet. Be the first to review this product!
-              </div>
-            )}
+            {/* Trustpilot Product Review Widget */}
+            <TrustpilotWidget
+              widgetType="product-review"
+              productSku={product.id}
+              height="400px"
+              className="w-full"
+            />
+            
+            {/* Fallback message */}
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              Reviews are powered by <span className="font-medium">Trustpilot</span>
+            </div>
           </CardContent>
         </Card>
       </div>

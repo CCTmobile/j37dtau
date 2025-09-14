@@ -1,6 +1,7 @@
-import React from 'react';
-import { Star, ShoppingCart, Eye, Heart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, ShoppingCart, Eye, Heart, ExternalLink } from 'lucide-react';
 import { ImageCarousel } from './ImageCarousel';
+import { getTrustpilotProductRating } from '../../utils/trustpilot';
 import type { Product } from '../../App';
 
 interface ProductCardProps {
@@ -44,6 +45,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   className = ''
 }) => {
+  // State for Trustpilot rating
+  const [trustpilotRating, setTrustpilotRating] = useState<{
+    rating: number;
+    reviewCount: number;
+    trustScore: number;
+  } | null>(null);
+
+  // Load Trustpilot rating on component mount
+  useEffect(() => {
+    const loadRating = async () => {
+      try {
+        const rating = await getTrustpilotProductRating(product.id);
+        setTrustpilotRating(rating);
+      } catch (error) {
+        console.error('Failed to load Trustpilot rating:', error);
+      }
+    };
+
+    loadRating();
+  }, [product.id]);
+
   // Calculate discount percentage for display - only show if there's an actual discount
   const discountPercentage = product.originalPrice &&
                             product.originalPrice > product.price &&
@@ -167,25 +189,43 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.name}
           </h3>
 
-          {/* Rating Display - Theme compatible */}
-          {product.rating && (
-            <div className="flex items-center gap-1">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-3 w-3 ${
-                      i < Math.floor(product.rating!) 
-                        ? 'text-yellow-400 fill-current' 
-                        : 'text-gray-300 dark:text-gray-600'
-                    }`}
-                  />
-                ))}
-              </div>
-              {product.reviews && product.reviews.length > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  ({product.reviews.length})
+          {/* Enhanced Trustpilot Rating Display */}
+          {(trustpilotRating || product.rating) && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-3.5 w-3.5 ${
+                        i < Math.floor(trustpilotRating?.rating || product.rating || 0) 
+                          ? 'text-yellow-400 fill-current' 
+                          : 'text-gray-300 dark:text-gray-600'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground ml-1">
+                  {trustpilotRating ? (
+                    <>({trustpilotRating.reviewCount} reviews)</>
+                  ) : product.reviews && product.reviews.length > 0 ? (
+                    <>({product.reviews.length})</>
+                  ) : (
+                    <>(0)</>
+                  )}
                 </span>
+              </div>
+              
+              {/* Trustpilot Trust Score Badge */}
+              {trustpilotRating && (
+                <div className="flex items-center gap-1 bg-gradient-to-r from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-800/20 px-2 py-1 rounded-full">
+                  <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold">T</span>
+                  </div>
+                  <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                    {trustpilotRating.trustScore.toFixed(1)}
+                  </span>
+                </div>
               )}
             </div>
           )}

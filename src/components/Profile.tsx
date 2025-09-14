@@ -7,10 +7,11 @@ import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Edit, MapPin, CreditCard, Bell, Shield, LogOut, Package, Heart, RefreshCw, Download, Printer, Eye, FileText } from 'lucide-react';
+import { Edit, MapPin, CreditCard, Bell, Shield, LogOut, Package, Heart, RefreshCw, Download, Printer, Eye, FileText, Star, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserOrders } from '../utils/supabase/client';
+import { sendProductReviewInvitation } from '../utils/trustpilot';
 import { generateInvoicePDFSimple as generateInvoicePDF, printInvoice, viewInvoiceInModal } from '../utils/pdfUtilsSimple';
 import { VerificationBanner } from './VerificationBanner';
 import { BottomSpacer } from './ui/bottom-spacer';
@@ -176,6 +177,30 @@ export function Profile({ onLogout, onNavigateToInfo }: ProfileProps) {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+
+  const handleRequestReview = async (order: any, item: any) => {
+    try {
+      await sendProductReviewInvitation(
+        user.email,
+        user.name,
+        order.id,
+        [{
+          id: item.products.id,
+          name: item.products.name,
+          image: item.products.image_url || '/images/placeholder-product.svg'
+        }]
+      );
+      toast.success(`Review invitation sent for ${item.products.name}!`);
+    } catch (error) {
+      console.error('Error sending review invitation:', error);
+      toast.error('Failed to send review invitation');
+    }
+  };
+
+  const canRequestReview = (order: any) => {
+    // Only allow review requests for delivered orders
+    return order.status === 'delivered';
   };
 
   const menuItems = [
@@ -476,23 +501,51 @@ export function Profile({ onLogout, onNavigateToInfo }: ProfileProps) {
                                     {selectedOrder.order_items && selectedOrder.order_items.length > 0 ? (
                                       <div className="space-y-3">
                                         {selectedOrder.order_items.map((item: any, index: number) => (
-                                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                                            <div className="flex items-center gap-3">
+                                          <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+                                            <div className="flex items-center gap-4 flex-1">
                                               {item.products?.image_url && (
                                                 <img
                                                   src={item.products.image_url}
                                                   alt={item.products.name}
-                                                  className="w-12 h-12 object-cover rounded"
+                                                  className="w-16 h-16 object-cover rounded-lg border"
                                                 />
                                               )}
-                                              <div>
-                                                <p className="font-medium">{item.products?.name || 'Unknown Product'}</p>
-                                                <p className="text-sm text-muted-foreground">
+                                              <div className="flex-1">
+                                                <p className="font-semibold text-lg">{item.products?.name || 'Unknown Product'}</p>
+                                                <p className="text-sm text-muted-foreground mb-2">
                                                   Quantity: {item.quantity} × {formatCurrency(item.price_at_purchase)}
                                                 </p>
+                                                
+                                                {/* Review Section */}
+                                                {canRequestReview(selectedOrder) && (
+                                                  <div className="flex items-center gap-3 mt-2">
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      onClick={() => handleRequestReview(selectedOrder, item)}
+                                                      className="bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border-green-200 text-green-700 hover:text-green-800"
+                                                    >
+                                                      <Star className="h-3 w-3 mr-1" />
+                                                      Leave Review
+                                                    </Button>
+                                                    <div className="flex items-center text-xs text-muted-foreground">
+                                                      <MessageCircle className="h-3 w-3 mr-1" />
+                                                      Share your experience
+                                                    </div>
+                                                  </div>
+                                                )}
+                                                
+                                                {!canRequestReview(selectedOrder) && selectedOrder.status !== 'delivered' && (
+                                                  <div className="flex items-center text-xs text-muted-foreground mt-2">
+                                                    <Star className="h-3 w-3 mr-1 text-gray-400" />
+                                                    Review available after delivery
+                                                  </div>
+                                                )}
                                               </div>
                                             </div>
-                                            <p className="font-medium">{formatCurrency(item.quantity * item.price_at_purchase)}</p>
+                                            <div className="text-right">
+                                              <p className="font-semibold text-lg">{formatCurrency(item.quantity * item.price_at_purchase)}</p>
+                                            </div>
                                           </div>
                                         ))}
                                         <Separator />
