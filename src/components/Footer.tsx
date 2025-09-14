@@ -131,6 +131,26 @@ export function Footer({ onInfoClick }: FooterProps) {
               </li>
             </ul>
             
+            {/* Trustpilot Reviews */}
+            <div className="pt-4">
+              <div 
+                className="trustpilot-widget" 
+                data-locale="en-US" 
+                data-template-id="5419b6a8b0d04a076446a9ad" 
+                data-businessunit-id="jqNE0wslhWspQelA" 
+                data-style-height="24px" 
+                data-style-width="100%" 
+                data-theme="dark"
+                data-min-review-count="1"
+                data-without-reviews-preferred-string-id="1"
+                data-style-alignment="left"
+              >
+                <a href="https://www.trustpilot.com/review/rosemamaclothing.store" target="_blank" rel="noopener" className="text-slate-400 hover:text-white transition-colors text-xs">
+                  Trustpilot Reviews
+                </a>
+              </div>
+            </div>
+            
             {/* Contact Info */}
             <div className="pt-4 space-y-2">
               <div className="flex items-center gap-2 text-xs text-slate-400">
