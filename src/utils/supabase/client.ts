@@ -52,7 +52,7 @@ export const getProducts = async (category?: string) => {
     let query = supabase
       .from('products')
       .select('*')
-      .is('deleted_at', null); // Only return non-deleted products
+      .eq('is_active', true); // Only return active products
     
     if (category && category !== 'All') {
       query = query.eq('category', category);
@@ -76,7 +76,7 @@ export const getAllProducts = async (category?: string) => {
     let query = supabase
       .from('products')
       .select('*')
-      .is('deleted_at', null); // Return only active (non-deleted) products
+      .eq('is_active', true); // Return only active products
     
     if (category && category !== 'All') {
       query = query.eq('category', category);
@@ -100,8 +100,8 @@ export const getDeletedProducts = async (category?: string) => {
     let query = supabase
       .from('products')
       .select('*')
-      .not('deleted_at', 'is', null) // Return only soft-deleted products
-      .order('deleted_at', { ascending: false }); // Most recently deleted first
+      .eq('is_active', false) // Return only inactive (soft-deleted) products
+      .order('updated_at', { ascending: false }); // Most recently updated first
     
     if (category && category !== 'All') {
       query = query.eq('category', category);
@@ -720,12 +720,12 @@ export const deleteProduct = async (productId: string) => {
     }
     console.log('🗑️ DeleteProduct: Product found:', product.name);
 
-    // Use soft delete - set deleted_at timestamp
+    // Use soft delete - set is_active to false
     // This preserves the product for order history while moving it to deleted inventory
-    console.log('🗑️ DeleteProduct: Performing soft delete (setting deleted_at timestamp)');
+    console.log('🗑️ DeleteProduct: Performing soft delete (setting is_active to false)');
     const { error } = await (supabase
       .from('products') as any)
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ is_active: false })
       .eq('id', productId);
 
     if (error) {
@@ -753,10 +753,10 @@ export const restoreProduct = async (productId: string) => {
       throw new Error('Unauthorized');
     }
 
-    // Restore by setting deleted_at to null
+    // Restore by setting is_active to true
     const { error } = await (supabase
       .from('products') as any)
-      .update({ deleted_at: null })
+      .update({ is_active: true })
       .eq('id', productId);
 
     if (error) {
