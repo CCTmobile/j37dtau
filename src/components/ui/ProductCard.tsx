@@ -269,13 +269,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Add to Cart Button - Enhanced and consistent with site theme */}
           <button
             onClick={handleAddToCart}
-            className="bg-rose-500 hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700 text-white 
-                     p-2 rounded-full transition-colors duration-200
-                     hover:scale-105 focus:outline-none focus:ring-2 focus:ring-rose-500 
+            className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white 
+                     text-white dark:text-slate-900 border-2 border-slate-900 dark:border-slate-100
+                     p-2 rounded-full transition-all duration-200
+                     hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 
                      shadow-md hover:shadow-lg"
             aria-label="Add to cart"
           >
-            <ShoppingCart className="h-4 w-4" />
+            <ShoppingCart className="h-4 w-4 text-white dark:text-slate-900" />
           </button>
         </div>
       </div>

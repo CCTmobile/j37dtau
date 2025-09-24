@@ -113,10 +113,21 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
         <TabsContent value="orders">
           <Card>
             <CardHeader>
-              <CardTitle>All Orders</CardTitle>
+              <CardTitle>Order Management</CardTitle>
             </CardHeader>
             <CardContent>
-              <OrdersTable showActions />
+              <Tabs defaultValue="active" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="active">Active Orders</TabsTrigger>
+                  <TabsTrigger value="archived">Archived Orders</TabsTrigger>
+                </TabsList>
+                <TabsContent value="active" className="mt-4">
+                  <OrdersTable showActions={true} showArchived={false} />
+                </TabsContent>
+                <TabsContent value="archived" className="mt-4">
+                  <OrdersTable showActions={true} showArchived={true} />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>

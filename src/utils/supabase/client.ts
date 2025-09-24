@@ -1160,3 +1160,107 @@ export const getRevenueGrowth = async (daysBack: number = 30) => {
     return { current_period_revenue: 0, previous_period_revenue: 0, growth_percentage: 0 };
   }
 };
+
+// Order soft delete functions
+export const softDeleteOrder = async (orderId: string): Promise<boolean> => {
+  try {
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) {
+      throw new Error('Unauthorized: Only admins can delete orders');
+    }
+
+    const { error } = await (supabase
+      .from('orders') as any)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', orderId)
+      .is('deleted_at', null);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error soft deleting order:', error);
+    return false;
+  }
+};
+
+export const restoreOrder = async (orderId: string): Promise<boolean> => {
+  try {
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) {
+      throw new Error('Unauthorized: Only admins can restore orders');
+    }
+
+    const { error } = await (supabase
+      .from('orders') as any)
+      .update({ deleted_at: null })
+      .eq('id', orderId)
+      .not('deleted_at', 'is', null);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error restoring order:', error);
+    return false;
+  }
+};
+
+export const permanentlyDeleteOrder = async (orderId: string): Promise<boolean> => {
+  try {
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) {
+      throw new Error('Unauthorized: Only admins can permanently delete orders');
+    }
+
+    // First delete order items
+    const { error: itemsError } = await (supabase
+      .from('order_items') as any)
+      .delete()
+      .eq('order_id', orderId);
+
+    if (itemsError) throw itemsError;
+
+    // Then delete the order itself
+    const { error: orderError } = await (supabase
+      .from('orders') as any)
+      .delete()
+      .eq('id', orderId);
+
+    if (orderError) throw orderError;
+    return true;
+  } catch (error) {
+    console.error('Error permanently deleting order:', error);
+    return false;
+  }
+};
+
+export const getDeletedOrders = async () => {
+  try {
+    const isUserAdmin = await isAdmin();
+    if (!isUserAdmin) {
+      throw new Error('Unauthorized: Only admins can view deleted orders');
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        user_id,
+        users (id, email, name),
+        status,
+        total_amount,
+        shipping_address,
+        created_at,
+        updated_at,
+        deleted_at,
+        order_items (id, product_id, quantity, price_at_purchase, products (id, name, image_url))
+      `)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching deleted orders:', error);
+    return [];
+  }
+};

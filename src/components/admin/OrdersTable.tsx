@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
-import { Loader2, Eye, Truck, CheckCircle, Package, DollarSign, User, MapPin, Calendar, CreditCard, FileText, Download, Printer, Circle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { Loader2, Eye, Truck, CheckCircle, Package, DollarSign, User, MapPin, Calendar, CreditCard, FileText, Download, Printer, Circle, Trash2, Archive, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { getRecentOrders, getAllOrders, updateOrderStatus } from '../../utils/supabase/client';
+import { getRecentOrders, getAllOrders, updateOrderStatus, softDeleteOrder, restoreOrder, permanentlyDeleteOrder, getDeletedOrders } from '../../utils/supabase/client';
 import { formatCurrencyZAR } from '../../utils/currency';
 import { getStatusColor } from './constants';
 import { generateInvoicePDFSimple as generateInvoicePDF, printInvoice, viewInvoiceInModal } from '../../utils/pdfUtilsSimple';
@@ -19,6 +21,7 @@ const STATUSES = ['all','pending','processing','shipped','delivered','cancelled'
 
 interface OrdersTableProps {
   showActions?: boolean;
+  showArchived?: boolean;
 }
 
 
@@ -37,7 +40,7 @@ interface EnhancedOrder {
   payment_method?: string;
 }
 
-export function OrdersTable({ showActions = false }: OrdersTableProps) {
+export function OrdersTable({ showActions = false, showArchived = false }: OrdersTableProps) {
   const [orders, setOrders] = useState<EnhancedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<EnhancedOrder | null>(null);
@@ -51,7 +54,7 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
 
   useEffect(() => {
     fetchOrders();
-  }, [showActions]);
+  }, [showActions, showArchived]);
 
   // Update sliding indicator position on filter change / resize
   useEffect(() => {
@@ -71,23 +74,33 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
 
   const fetchOrders = async () => {
     try {
-      const data = showActions
-        ? await getAllOrders() // Get all orders for admin view
-        : await getRecentOrders(10); // Get recent orders for overview
+      let data;
+      
+      if (showArchived) {
+        // Get deleted/archived orders
+        data = await getDeletedOrders();
+      } else if (showActions) {
+        // Get all active orders for admin view
+        data = await getAllOrders();
+      } else {
+        // Get recent orders for overview
+        data = await getRecentOrders(10);
+      }
 
-      if (showActions && Array.isArray(data)) {
+      if ((showActions || showArchived) && Array.isArray(data)) {
         // Transform admin orders data with enhanced information
         const transformedOrders = data.map((order: any) => ({
           id: order.id,
           order_id: order.id,
-          customer_email: order.users?.email || 'N/A',
-          customer_name: order.users?.name || 'N/A',
-          amount: order.total_amount,
+          customer_email: order.users?.email || order.customer_email || 'N/A',
+          customer_name: order.users?.name || order.customer_name || 'N/A',
+          amount: order.total_amount || order.amount,
           status: order.status,
-          order_date: new Date(order.created_at).toLocaleDateString(),
+          order_date: new Date(order.created_at || order.order_date).toLocaleDateString(),
           shipping_address: order.shipping_address,
           order_items: order.order_items || [],
-          payment_method: order.shipping_address?.paymentMethod || 'N/A'
+          payment_method: order.shipping_address?.paymentMethod || order.payment_method || 'N/A',
+          deleted_at: order.deleted_at
         }));
         setOrders(transformedOrders);
       } else if (!showActions && Array.isArray(data)) {
@@ -143,6 +156,54 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
       toast.error('Failed to update order status');
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleSoftDeleteOrder = async (orderId: string) => {
+    try {
+      const success = await softDeleteOrder(orderId);
+      if (success) {
+        toast.success('Order moved to archive');
+        fetchOrders(); // Refresh the list
+        setSelectedOrder(null); // Close dialog if open
+      } else {
+        toast.error('Failed to archive order');
+      }
+    } catch (error) {
+      console.error('Error archiving order:', error);
+      toast.error('Failed to archive order');
+    }
+  };
+
+  const handleRestoreOrder = async (orderId: string) => {
+    try {
+      const success = await restoreOrder(orderId);
+      if (success) {
+        toast.success('Order restored successfully');
+        fetchOrders(); // Refresh the list
+        setSelectedOrder(null); // Close dialog if open
+      } else {
+        toast.error('Failed to restore order');
+      }
+    } catch (error) {
+      console.error('Error restoring order:', error);
+      toast.error('Failed to restore order');
+    }
+  };
+
+  const handlePermanentDeleteOrder = async (orderId: string) => {
+    try {
+      const success = await permanentlyDeleteOrder(orderId);
+      if (success) {
+        toast.success('Order permanently deleted');
+        fetchOrders(); // Refresh the list
+        setSelectedOrder(null); // Close dialog if open
+      } else {
+        toast.error('Failed to permanently delete order');
+      }
+    } catch (error) {
+      console.error('Error permanently deleting order:', error);
+      toast.error('Failed to permanently delete order');
     }
   };
 
@@ -348,14 +409,48 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
                   </TableCell>
                   {showActions && (
                     <TableCell className="py-1 text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0"
-                        onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
+                      <div className="flex gap-1 justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        {showArchived ? (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={(e) => { e.stopPropagation(); handleRestoreOrder(order.id); }}
+                              title="Restore order"
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={(e) => { e.stopPropagation(); handlePermanentDeleteOrder(order.id); }}
+                              title="Permanently delete"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            onClick={(e) => { e.stopPropagation(); handleSoftDeleteOrder(order.id); }}
+                            title="Move to archive"
+                          >
+                            <Archive className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </>
@@ -386,10 +481,44 @@ export function OrdersTable({ showActions = false }: OrdersTableProps) {
                   <TableCell>{order.order_date}</TableCell>
                   {showActions && (
                     <TableCell>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}>
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
+                        {showArchived ? (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={(e) => { e.stopPropagation(); handleRestoreOrder(order.id); }}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={(e) => { e.stopPropagation(); handlePermanentDeleteOrder(order.id); }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          </>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                            onClick={(e) => { e.stopPropagation(); handleSoftDeleteOrder(order.id); }}
+                          >
+                            <Archive className="h-4 w-4 mr-1" />
+                            Archive
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </>
