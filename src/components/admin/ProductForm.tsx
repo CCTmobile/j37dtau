@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -22,6 +22,8 @@ interface ProductFormProps {
   product?: Product | null;
   onSuccess?: () => void;
   onCancel?: () => void;
+  onCropImage?: (index: number, src: string, type: 'new' | 'existing', form: 'create' | 'edit') => void;
+  onCropComplete?: (croppedImageBlob: Blob, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
 }
 
 interface UploadedImage {
@@ -34,7 +36,11 @@ interface UploadedImage {
   progress: number;
 }
 
-export function ProductForm({ mode = 'create', product = null, onSuccess, onCancel }: ProductFormProps) {
+export interface ProductFormRef {
+  handleCropComplete: (croppedImageBlob: Blob, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
+}
+
+export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode = 'create', product = null, onSuccess, onCancel, onCropImage }, ref) => {
   const [formData, setFormData] = useState({
     name: product?.name || '',
     category: product?.category || 'Casual' as Product['category'],
@@ -55,7 +61,44 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
   const [newSizeInput, setNewSizeInput] = useState('');
   const [newColorInput, setNewColorInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [croppingImage, setCroppingImage] = useState<{ index: number; src: string; type: 'new' | 'existing' } | null>(null);
+
+  // Expose handleCropComplete method to parent
+  useImperativeHandle(ref, () => ({
+    handleCropComplete: (croppedImageBlob: Blob, croppingContext: { index: number; type: 'new' | 'existing' }) => {
+      const croppedFile = new File([croppedImageBlob], "cropped_image.png", { type: "image/png" });
+      const previewUrl = URL.createObjectURL(croppedFile);
+
+      if (croppingContext.type === 'new') {
+        setUploadedImages(prev => {
+          const newImages = [...prev];
+          const oldPreview = newImages[croppingContext.index].preview;
+          URL.revokeObjectURL(oldPreview); // Clean up old preview
+          newImages[croppingContext.index] = {
+            ...newImages[croppingContext.index],
+            file: croppedFile,
+            preview: previewUrl,
+            status: 'pending',
+          };
+          return newImages;
+        });
+      } else { // 'existing'
+        // When an existing image is cropped, we treat it as a new image to be uploaded
+        // and remove the old one from the existing list.
+        setExistingImages(prev => prev.filter((_, index) => index !== croppingContext.index));
+        setUploadedImages(prev => [
+          ...prev,
+          {
+            file: croppedFile,
+            preview: previewUrl,
+            status: 'pending',
+            progress: 0,
+          }
+        ]);
+      }
+
+      toast.success("Image cropped successfully. Ready for upload.");
+    }
+  }));
 
   // Cleanup effect for object URLs
   useEffect(() => {
@@ -68,44 +111,6 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
       });
     };
   }, [uploadedImages]);
-
-  const handleCropComplete = (croppedImageBlob: Blob) => {
-    if (!croppingImage) return;
-
-    const croppedFile = new File([croppedImageBlob], "cropped_image.png", { type: "image/png" });
-    const previewUrl = URL.createObjectURL(croppedFile);
-
-    if (croppingImage.type === 'new') {
-      setUploadedImages(prev => {
-        const newImages = [...prev];
-        const oldPreview = newImages[croppingImage.index].preview;
-        URL.revokeObjectURL(oldPreview); // Clean up old preview
-        newImages[croppingImage.index] = {
-          ...newImages[croppingImage.index],
-          file: croppedFile,
-          preview: previewUrl,
-          status: 'pending',
-        };
-        return newImages;
-      });
-    } else { // 'existing'
-      // When an existing image is cropped, we treat it as a new image to be uploaded
-      // and remove the old one from the existing list.
-      setExistingImages(prev => prev.filter((_, index) => index !== croppingImage.index));
-      setUploadedImages(prev => [
-        ...prev,
-        {
-          file: croppedFile,
-          preview: previewUrl,
-          status: 'pending',
-          progress: 0,
-        }
-      ]);
-    }
-
-    setCroppingImage(null);
-    toast.success("Image cropped successfully. Ready for upload.");
-  };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -563,7 +568,10 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {existingImages.map((imageUrl, index) => (
                     <div key={`existing-${index}`} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => setCroppingImage({ index, src: imageUrl, type: 'existing' })}>
+                      <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
+                        console.log('🖼️ Clicking existing image for cropping:', { index, imageUrl, mode });
+                        onCropImage?.(index, imageUrl, 'existing', mode);
+                      }}>
                         <img
                           src={imageUrl}
                           alt={`Existing ${index + 1}`}
@@ -630,7 +638,10 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {uploadedImages.map((image, index) => (
                     <div key={`new-${index}`} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => setCroppingImage({ index, src: image.preview, type: 'new' })}>
+                      <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
+                        console.log('🖼️ Clicking new image for cropping:', { index, preview: image.preview, mode });
+                        onCropImage?.(index, image.preview, 'new', mode);
+                      }}>
                         <img
                           src={image.preview}
                           alt={`New ${index + 1}`}
@@ -723,12 +734,9 @@ export function ProductForm({ mode = 'create', product = null, onSuccess, onCanc
             </Button>
           </div>
         </form>
-        <ImageCropper
-          src={croppingImage?.src || null}
-          onClose={() => setCroppingImage(null)}
-          onCropComplete={handleCropComplete}
-        />
       </CardContent>
-    </Card>
+        </Card>
   );
-}
+});
+
+ProductForm.displayName = 'ProductForm';

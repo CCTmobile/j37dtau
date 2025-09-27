@@ -1,5 +1,5 @@
-// Service Worker Registration and Push Notification Setup
-// Handles service worker registration and push notification permission
+// Service Worker Registration, Push Notifications, and AI Processing Management
+// Handles service worker registration, push notifications, and AI image processing
 
 export interface PushSubscriptionData {
   endpoint: string;
@@ -9,9 +9,30 @@ export interface PushSubscriptionData {
   };
 }
 
+export interface AIProcessingStatus {
+  isOnline: boolean;
+  queueLength: number;
+  isProcessing: boolean;
+  currentRequestId?: string;
+}
+
+export interface AIProcessingCallbacks {
+  onNetworkStatusChange?: (isOnline: boolean) => void;
+  onQueueUpdate?: (queueLength: number, isProcessing: boolean) => void;
+  onRequestQueued?: (requestId: string, error: string) => void;
+  onRequestSuccess?: (requestId: string, imageBlob?: Blob, imageUrl?: string, imageId?: string) => void;
+  onRequestFailed?: (requestId: string, error: string, maxRetriesExceeded: boolean) => void;
+}
+
 class ServiceWorkerManager {
   private registration: ServiceWorkerRegistration | null = null;
   private pushSubscription: PushSubscription | null = null;
+  private aiCallbacks: AIProcessingCallbacks = {};
+  private aiStatus: AIProcessingStatus = {
+    isOnline: navigator.onLine,
+    queueLength: 0,
+    isProcessing: false
+  };
 
   async register(): Promise<boolean> {
     if (!('serviceWorker' in navigator)) {
@@ -25,6 +46,9 @@ class ServiceWorkerManager {
       });
 
       console.log('Service worker registered successfully:', this.registration);
+
+      // Set up AI processing message handling
+      this.setupAIMessageHandling();
 
       // Handle updates
       this.registration.addEventListener('updatefound', () => {
@@ -45,6 +69,135 @@ class ServiceWorkerManager {
       console.error('Service worker registration failed:', error);
       return false;
     }
+  }
+
+  // AI Processing Methods
+  setAICallbacks(callbacks: AIProcessingCallbacks) {
+    this.aiCallbacks = callbacks;
+  }
+
+  private setupAIMessageHandling() {
+    if (!navigator.serviceWorker) return;
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const { type, ...data } = event.data;
+
+      switch (type) {
+        case 'NETWORK_STATUS_CHANGE':
+          this.aiStatus.isOnline = data.status === 'online';
+          console.log(`📡 Network status: ${data.status}`);
+          this.aiCallbacks.onNetworkStatusChange?.(this.aiStatus.isOnline);
+          break;
+
+        case 'AI_REQUEST_QUEUED':
+          this.aiStatus.queueLength = data.queueLength;
+          console.log(`📋 AI request queued: ${data.requestId}, Queue length: ${data.queueLength}`);
+          this.aiCallbacks.onRequestQueued?.(data.requestId, data.error);
+          this.aiCallbacks.onQueueUpdate?.(this.aiStatus.queueLength, this.aiStatus.isProcessing);
+          break;
+
+        case 'AI_REQUEST_SUCCESS':
+          this.aiStatus.queueLength = data.queueLength;
+          console.log(`✅ AI request successful: ${data.requestId}`);
+          this.aiCallbacks.onRequestSuccess?.(data.requestId, data.imageBlob);
+          this.aiCallbacks.onQueueUpdate?.(this.aiStatus.queueLength, this.aiStatus.isProcessing);
+          break;
+
+        case 'AI_REQUEST_FAILED':
+          console.log(`❌ AI request failed: ${data.requestId}, Error: ${data.error}`);
+          this.aiCallbacks.onRequestFailed?.(data.requestId, data.error, data.maxRetriesExceeded);
+          break;
+
+        case 'AI_REQUEST_QUEUE_CLEARED':
+          this.aiStatus.queueLength = data.queueLength;
+          console.log(`🗑️ AI queue cleared, new length: ${data.queueLength}`);
+          this.aiCallbacks.onQueueUpdate?.(this.aiStatus.queueLength, this.aiStatus.isProcessing);
+          break;
+
+        case 'QUEUE_STATUS':
+          this.aiStatus.queueLength = data.queueLength;
+          this.aiStatus.isProcessing = data.isProcessing;
+          this.aiCallbacks.onQueueUpdate?.(this.aiStatus.queueLength, this.aiStatus.isProcessing);
+          break;
+
+        default:
+          console.log('Unknown service worker message:', type, data);
+      }
+    });
+  }
+
+  async getAIStatus(): Promise<AIProcessingStatus> {
+    if (!this.registration?.active) {
+      return this.aiStatus;
+    }
+
+    try {
+      const response = await this.sendMessageToSW('GET_QUEUE_STATUS');
+      if (response) {
+        this.aiStatus.queueLength = response.queueLength;
+        this.aiStatus.isProcessing = response.isProcessing;
+      }
+
+      const networkResponse = await this.sendMessageToSW('GET_NETWORK_STATUS');
+      if (networkResponse) {
+        this.aiStatus.isOnline = networkResponse.status === 'online';
+      }
+    } catch (error) {
+      console.warn('Failed to get AI status from service worker:', error);
+    }
+
+    return this.aiStatus;
+  }
+
+  async retryFailedRequests(): Promise<void> {
+    if (!this.registration?.active) return;
+
+    try {
+      await this.sendMessageToSW('RETRY_FAILED_REQUESTS');
+      console.log('🔄 Requested retry of failed AI requests');
+    } catch (error) {
+      console.warn('Failed to retry requests:', error);
+    }
+  }
+
+  async clearQueue(): Promise<void> {
+    if (!this.registration?.active) return;
+
+    try {
+      await this.sendMessageToSW('CLEAR_AI_QUEUE');
+      console.log('🗑️ Cleared AI request queue');
+      // Update local status
+      this.aiStatus.queueLength = 0;
+      this.aiCallbacks.onQueueUpdate?.(0, this.aiStatus.isProcessing);
+    } catch (error) {
+      console.warn('Failed to clear queue:', error);
+    }
+  }
+
+  private async sendMessageToSW(type: string, data?: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.registration?.active) {
+        reject(new Error('No active service worker'));
+        return;
+      }
+
+      const messageChannel = new MessageChannel();
+
+      messageChannel.port1.onmessage = (event) => {
+        resolve(event.data);
+      };
+
+      messageChannel.port1.onmessageerror = () => {
+        reject(new Error('Message port error'));
+      };
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        reject(new Error('Service worker message timeout'));
+      }, 5000);
+
+      this.registration.active.postMessage({ type, ...data }, [messageChannel.port2]);
+    });
   }
 
   async requestPushPermission(): Promise<boolean> {

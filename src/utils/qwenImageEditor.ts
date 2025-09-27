@@ -20,11 +20,159 @@ export interface QwenEditResponse {
   success: boolean;
   edited_image?: Blob;
   error?: string;
+  queued?: boolean;
+  requestId?: string;
+  networkStatus?: 'online' | 'offline';
+  imageUrl?: string; // URL of saved image
+  imageId?: string; // Unique ID for the processed image
+}
+
+export interface StoredImage {
+  id: string;
+  originalImageId: string;
+  editType: string;
+  blob: Blob;
+  url: string;
+  timestamp: number;
+  metadata?: any;
 }
 
 export class QwenImageEditor {
+  private imageStorageDB: IDBDatabase | null = null;
+
   constructor(apiKey?: string, apiEndpoint?: string) {
     // API key and endpoint not needed when using Supabase function
+    this.initImageStorage();
+  }
+
+  private async initImageStorage() {
+    // Initialize IndexedDB for local image storage
+    const request = indexedDB.open('QwenImageStorage', 1);
+    
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains('processedImages')) {
+        const store = db.createObjectStore('processedImages', { keyPath: 'id' });
+        store.createIndex('originalImageId', 'originalImageId', { unique: false });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+
+    request.onsuccess = (event) => {
+      this.imageStorageDB = (event.target as IDBOpenDBRequest).result;
+      console.log('🗄️ Image storage database initialized');
+    };
+
+    request.onerror = (error) => {
+      console.error('❌ Failed to initialize image storage:', error);
+    };
+  }
+
+  private generateImageId(blob: Blob): string {
+    // Generate a simple ID based on blob size and timestamp
+    // In a production app, you might want to use a proper hash
+    return `orig_${blob.size}_${Date.now()}`;
+  }
+
+  private async saveImageLocally(imageId: string, originalImageId: string, editType: string, blob: Blob, metadata?: any): Promise<string> {
+    if (!this.imageStorageDB) {
+      throw new Error('Image storage not initialized');
+    }
+
+    const url = URL.createObjectURL(blob);
+    const storedImage: StoredImage = {
+      id: imageId,
+      originalImageId,
+      editType,
+      blob,
+      url,
+      timestamp: Date.now(),
+      metadata
+    };
+
+    const transaction = this.imageStorageDB.transaction(['processedImages'], 'readwrite');
+    const store = transaction.objectStore('processedImages');
+    
+    await new Promise<void>((resolve, reject) => {
+      const request = store.put(storedImage);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+
+    console.log(`💾 Image saved locally: ${imageId}`);
+    return url;
+  }
+
+  private async saveImageToSupabase(blob: Blob, imageId: string): Promise<string> {
+    const fileName = `ai-processed/${imageId}.png`;
+    
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, blob, {
+        contentType: 'image/png',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('❌ Failed to save image to Supabase:', error);
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
+
+    console.log(`☁️ Image saved to Supabase: ${publicUrl}`);
+    return publicUrl;
+  }
+
+  async loadStoredImage(imageId: string): Promise<StoredImage | null> {
+    if (!this.imageStorageDB) {
+      return null;
+    }
+
+    const transaction = this.imageStorageDB.transaction(['processedImages'], 'readonly');
+    const store = transaction.objectStore('processedImages');
+    
+    return new Promise((resolve) => {
+      const request = store.get(imageId);
+      request.onsuccess = () => {
+        const result = request.result;
+        if (result) {
+          // Recreate blob URL if needed
+          if (!result.url || !result.url.startsWith('blob:')) {
+            result.url = URL.createObjectURL(result.blob);
+          }
+        }
+        resolve(result || null);
+      };
+      request.onerror = () => resolve(null);
+    });
+  }
+
+  async getStoredImagesForOriginal(originalImageId: string): Promise<StoredImage[]> {
+    if (!this.imageStorageDB) {
+      return [];
+    }
+
+    const transaction = this.imageStorageDB.transaction(['processedImages'], 'readonly');
+    const store = transaction.objectStore('processedImages');
+    const index = store.index('originalImageId');
+    
+    return new Promise((resolve) => {
+      const request = index.getAll(originalImageId);
+      request.onsuccess = () => {
+        const results = request.result || [];
+        // Ensure blob URLs are valid
+        results.forEach(result => {
+          if (!result.url || !result.url.startsWith('blob:')) {
+            result.url = URL.createObjectURL(result.blob);
+          }
+        });
+        resolve(results);
+      };
+      request.onerror = () => resolve([]);
+    });
   }
 
   private async blobToBase64(blob: Blob): Promise<string> {
@@ -39,63 +187,63 @@ export class QwenImageEditor {
   private getPromptForEditType(editType: string, options?: { color?: string; shape?: string; scenario?: string }): string {
     const { color = 'natural', shape = 'original', scenario = 'general' } = options || {};
 
-    switch (editType) {
+switch (editType) {
       case 'remove_bg':
-        return 'Generate an image of the main subject from the provided image with a completely transparent background. Isolate only the foreground subject and remove all background elements completely. The result should be a PNG with transparent background.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Isolate only the main subject with a completely transparent background. Apply HDR enhancement: improve dynamic range, recover shadow/highlight details, and boost clarity. Output must be a PNG with pure transparency and no background remnants.';
 
       case 'replace_bg_white':
-        return `Take the main subject from the provided image and place it on a clean white background. The white background should be pure white (#FFFFFF) with no textures or patterns. Maintain the subject's original colors and lighting.`;
+        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Extract the main subject and place it on a pure white background (#FFFFFF)—no textures, gradients, or noise. Apply HDR enhancement: improve contrast, recover details, and ensure professional color fidelity. Maintain original lighting and proportions.`;
 
       case 'replace_bg_black':
-        return `Take the main subject from the provided image and place it on a clean black background. The black background should be pure black (#000000) with no textures or patterns. Maintain the subject's original colors and lighting.`;
+        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Extract the main subject and place it on a pure black background (#000000)—no textures, gradients, or noise. Apply HDR enhancement: enhance tonal range, sharpen details, and preserve natural lighting. Keep subject colors accurate and vivid.`;
 
       case 'replace_bg_transparent':
-        return 'Generate an image of the main subject from the provided image with a completely transparent background. Isolate only the foreground subject and remove all background elements completely. The result should be a PNG with transparent background.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Isolate only the main subject with a completely transparent background. Apply HDR enhancement: improve dynamic range, recover shadow/highlight details, and boost clarity. Output must be a PNG with pure transparency and no background remnants.';
 
       case 'replace_bg_gradient':
-        return `Take the main subject from the provided image and place it on a beautiful gradient background. Choose complementary colors that enhance the subject. The gradient should be smooth and professional-looking.`;
+        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Place the main subject on a smooth, professional gradient background using complementary colors that enhance the subject. Apply HDR enhancement: enrich contrast, recover details in all tonal ranges, and ensure the subject remains crisp and naturally lit.`;
 
       case 'replace_bg_nature':
-        return `Take the main subject from the provided image and place it in a beautiful natural outdoor setting. Choose an appropriate natural environment (${scenario}) that complements the subject. Include realistic lighting and atmosphere.`;
+        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Seamlessly integrate the main subject into a realistic, high-fidelity natural outdoor environment (${scenario}) that complements its form, color, and context. Apply professional HDR enhancement: balance lighting between subject and background, recover ambient details in foliage/sky/terrain, and ensure cohesive depth, atmosphere, and natural shadow integration. The result should look like a professionally photographed scene—not a composite.`;
 
       case 'replace_bg_studio':
-        return `Take the main subject from the provided image and place it in a professional photography studio setting. Include appropriate lighting, backdrop, and professional photography equipment. Make it look like a high-end product photograph.`;
+        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Place the main subject in a professional photography studio setting with soft, directional lighting and a seamless backdrop. Apply HDR enhancement: maximize detail, ensure perfect exposure, and produce a high-end commercial product photo with rich tonal depth.`;
 
       case 'enhance_quality':
-        return 'Take the provided image and create an enhanced, professional version with improved sharpness, better color balance, higher contrast, and overall better visual quality. Make it look polished and high-end while maintaining the original composition.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply comprehensive HDR enhancement: significantly improve sharpness, dynamic range, color balance, contrast, and micro-detail recovery. Produce a polished, professional-grade image while preserving original composition and intent.';
 
       case 'enhance_colors':
-        return `Take the provided image and create a more vibrant, colorful version with enhanced saturation, better contrast, and more appealing color tones (${color} style) while maintaining the original composition and style.`;
+        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Enhance colors with increased saturation, improved contrast, and refined tonal harmony in a (${color} style). Apply HDR processing to recover highlight/shadow details and ensure vibrant yet natural-looking results. Maintain original composition.`;
 
       case 'enhance_sharpness':
-        return 'Take the provided image and significantly increase its sharpness and clarity. Enhance details, reduce blur, and make edges crisp while maintaining natural look. Apply professional sharpening techniques.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply aggressive yet natural-looking sharpening with HDR detail recovery: enhance edges, reduce blur, amplify texture clarity, and restore fine details without introducing halos or noise.';
 
       case 'enhance_hdr':
-        return 'Take the provided image and apply a high dynamic range (HDR) effect. Enhance contrast, bring out details in shadows and highlights, and create a more dramatic, professional look with rich tonal range.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply advanced HDR processing: dramatically expand dynamic range, reveal hidden details in shadows and highlights, balance local contrast, and produce a rich, cinematic, professional-quality image with depth and realism.';
 
       case 'effect_vintage':
-        return 'Take the provided image and apply a vintage film photography effect. Add film grain, slight color shifts, and the nostalgic look of old photographic film while maintaining the image clarity.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply a vintage film effect with subtle color shifts, authentic film grain, and soft contrast—but first apply HDR enhancement to preserve detail and clarity beneath the nostalgic aesthetic.';
 
       case 'effect_bw':
-        return 'Convert the provided image to classic black and white photography. Apply professional black and white conversion with rich tonal range, proper contrast, and artistic monochrome aesthetic.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Convert to professional black and white with HDR tonal range: rich blacks, clean whites, nuanced midtones, and enhanced texture detail. Apply artistic contrast for a timeless monochrome photograph.';
 
       case 'effect_sepia':
-        return 'Apply a warm sepia tone effect to the provided image. Use classic sepia brown tones that give the image a vintage, historical photograph appearance with warm, nostalgic coloring.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply a warm sepia tone with HDR-enhanced detail: preserve texture and depth in shadows/highlights while giving a nostalgic, historical photograph appearance with balanced warmth and clarity.';
 
       case 'effect_cartoon':
-        return 'Transform the provided image into a cartoon or animated style. Simplify shapes, enhance colors, add bold outlines, and create a fun, illustrative cartoon appearance while maintaining the original subject.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Transform into a stylized cartoon: simplify shapes, bold outlines, vibrant HDR-enhanced colors, and smooth gradients—while retaining recognizable subject features and expressive clarity.';
 
       case 'transform_square':
-        return 'Take the main subject from the provided image and compose it into a perfect square format. Crop or reposition elements as needed to create a balanced square composition while maintaining the subject\'s importance.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Recompose the main subject into a perfect square format with balanced framing. Apply HDR enhancement to ensure detail, contrast, and color quality remain high after cropping or repositioning.';
 
       case 'transform_portrait':
-        return 'Take the main subject from the provided image and compose it into a vertical portrait orientation. Adjust composition and cropping to create a professional portrait-style image with appropriate vertical framing.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Recompose into a vertical portrait orientation with professional framing. Apply HDR enhancement to maintain detail, lighting consistency, and visual impact in the new aspect ratio.';
 
       case 'transform_landscape':
-        return 'Take the main subject from the provided image and compose it into a horizontal landscape orientation. Adjust composition and cropping to create a professional landscape-style image with appropriate horizontal framing.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Recompose into a horizontal landscape orientation with balanced composition. Apply HDR enhancement to preserve dynamic range, sharpness, and color fidelity across the wider frame.';
 
       case 'transform_circle':
-        return 'Take the main subject from the provided image and compose it into a circular format. Crop the image into a perfect circle, ensuring the subject is well-centered and properly framed within the circular composition.';
+        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Crop the main subject into a perfect circle with centered, balanced framing. Apply HDR enhancement to retain detail and contrast within the circular bounds. Output should have a transparent or neutral background as appropriate.';
 
       default:
         return 'Edit this image appropriately and return the result.';
@@ -147,85 +295,214 @@ export class QwenImageEditor {
         referenceImageBase64 = refBase64.split(',')[1]; // Remove data URL prefix
       }
 
-      // Call Supabase Edge Function (expects JSON response)
-      const { data: supabaseData, error: supabaseError } = await supabase.functions.invoke('qwen-proxy', {
-        body: {
-          imageBase64: imageDataUrl,
-          prompt: prompt,
-          editType: request.edit_type,
-          ...(referenceImageBase64 && { referenceImageBase64 })
-        }
+      // Set up promise to wait for service worker response or direct response
+      let resolveResponse: (response: QwenEditResponse) => void;
+      let rejectResponse: (error: Error) => void;
+      const responsePromise = new Promise<QwenEditResponse>((resolve, reject) => {
+        resolveResponse = resolve;
+        rejectResponse = reject;
       });
 
-      if (supabaseError) {
-        throw new Error(supabaseError.message || 'Supabase function error');
-      }
-
-      if (!supabaseData) {
-        throw new Error('No response from Edge Function');
-      }
-
-      // Handle JSON response from Edge Function
-      const result = supabaseData;
-
-      console.log('Supabase function response:', result); // Debug log
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      // Extract generated image from response
-      let imageData = null;
-      let generatedImageUrl = null;  // Declare generatedImageUrl here
-
-      if (result.output && result.output.results && result.output.results[0]) {
-        const resultItem = result.output.results[0];
-        console.log('Result item:', resultItem);
-
-        if (resultItem.imageData) {
-          // Base64 data URL returned by Edge Function (preferred)
-          imageData = resultItem.imageData;
-          console.log('Received base64 image data from Edge Function');
-        } else if (resultItem.url) {
-          // Fallback to URL (older format)
-          generatedImageUrl = resultItem.url;
-        } else if (typeof resultItem === 'string' && resultItem.startsWith('http')) {
-          generatedImageUrl = resultItem;
-        } else if (typeof resultItem === 'string') {
-          console.log('API returned text description instead of image:', resultItem);
-          throw new Error(`API returned text description: ${resultItem.substring(0, 200)}...`);
-        } else {
-          console.log('Unexpected result format:', JSON.stringify(resultItem, null, 2));
-          throw new Error(`Unexpected API response format: ${JSON.stringify(resultItem)}`);
+      // Listen for service worker messages
+      const messageHandler = async (event: MessageEvent) => {
+        const { type, ...data } = event.data;
+        
+        if (type === 'AI_REQUEST_SUCCESS' && data.imageBlob) {
+          console.log('✅ AI request completed via service worker');
+          navigator.serviceWorker.removeEventListener('message', messageHandler);
+          
+          // Save the processed image locally and to Supabase
+          const imageId = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const originalImageId = this.generateImageId(request.image);
+          
+          try {
+            // Save locally for immediate access and offline recovery
+            const localUrl = await this.saveImageLocally(imageId, originalImageId, request.edit_type, data.imageBlob);
+            
+            // Save to Supabase for persistent storage and sharing
+            const supabaseUrl = await this.saveImageToSupabase(data.imageBlob, imageId);
+            
+            console.log('✅ Image processed via service worker and saved successfully');
+            
+            resolveResponse({
+              success: true,
+              edited_image: data.imageBlob,
+              imageUrl: supabaseUrl,
+              imageId: imageId
+            });
+          } catch (saveError) {
+            console.error('⚠️ Image processing via service worker succeeded but saving failed:', saveError);
+            // Still return success since the image was processed, but log the save error
+            resolveResponse({
+              success: true,
+              edited_image: data.imageBlob,
+              error: `Image processed but saving failed: ${saveError instanceof Error ? saveError.message : 'Unknown save error'}`
+            });
+          }
+        } else if (type === 'AI_REQUEST_FAILED' && data.maxRetriesExceeded) {
+          console.log('❌ AI request failed permanently via service worker:', data.error);
+          navigator.serviceWorker.removeEventListener('message', messageHandler);
+          rejectResponse(new Error(data.error || 'AI processing failed after retries'));
         }
-      }
-
-      if (!imageData && !generatedImageUrl) {
-        console.log('Full API response for debugging:', JSON.stringify(result, null, 2));
-        throw new Error('No image data or URL found in API response.');
-      }
-
-      let blob;
-      if (imageData) {
-        // Convert base64 data URL to blob (no CORS issues)
-        const base64Data = imageData.split(',')[1];
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        blob = new Blob([bytes], { type: 'image/png' });
-        console.log('Converted base64 to blob successfully');
-      } else {
-        // Fallback: Use canvas method to load URL (CORS bypass if possible)
-        console.log('Loading image from URL via canvas (fallback):', generatedImageUrl);
-        blob = await this.urlToBlob(generatedImageUrl);
-      }
-
-      return {
-        success: true,
-        edited_image: blob
       };
+
+      navigator.serviceWorker.addEventListener('message', messageHandler);
+
+      // Set timeout for the operation
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          navigator.serviceWorker.removeEventListener('message', messageHandler);
+          reject(new Error('AI processing timeout - request may still be queued'));
+        }, 300000); // 5 minutes timeout
+      });
+
+      try {
+        // Call Supabase Edge Function (expects JSON response)
+        const { data: supabaseData, error: supabaseError } = await supabase.functions.invoke('qwen-proxy', {
+          body: {
+            imageBase64: imageDataUrl,
+            prompt: prompt,
+            editType: request.edit_type,
+            ...(referenceImageBase64 && { referenceImageBase64 })
+          }
+        });
+
+        if (supabaseError) {
+          throw new Error(supabaseError.message || 'Supabase function error');
+        }
+
+        if (!supabaseData) {
+          throw new Error('No response from Edge Function');
+        }
+
+        // Handle JSON response from Edge Function
+        const result = supabaseData;
+
+        console.log('Supabase function response:', result); // Debug log
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        // Extract generated image from response
+        let imageData = null;
+        let generatedImageUrl = null;  // Declare generatedImageUrl here
+
+        if (result.output && result.output.results && result.output.results[0]) {
+          const resultItem = result.output.results[0];
+          console.log('Result item:', resultItem);
+
+          if (resultItem.imageData) {
+            // Base64 data URL returned by Edge Function (preferred)
+            imageData = resultItem.imageData;
+            console.log('Received base64 image data from Edge Function');
+          } else if (resultItem.url) {
+            // Fallback to URL (older format)
+            generatedImageUrl = resultItem.url;
+          } else if (typeof resultItem === 'string' && resultItem.startsWith('http')) {
+            generatedImageUrl = resultItem;
+          } else if (typeof resultItem === 'string') {
+            console.log('API returned text description instead of image:', resultItem);
+            throw new Error(`API returned text description: ${resultItem.substring(0, 200)}...`);
+          } else {
+            console.log('Unexpected result format:', JSON.stringify(resultItem, null, 2));
+            throw new Error(`Unexpected API response format: ${JSON.stringify(resultItem)}`);
+          }
+        }
+
+        if (!imageData && !generatedImageUrl) {
+          console.log('Full API response for debugging:', JSON.stringify(result, null, 2));
+          throw new Error('No image data or URL found in API response.');
+        }
+
+        let blob;
+        if (imageData) {
+          // Convert base64 data URL to blob (no CORS issues)
+          const base64Data = imageData.split(',')[1];
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          blob = new Blob([bytes], { type: 'image/png' });
+          console.log('Converted base64 to blob successfully');
+        } else {
+          // Fallback: Use canvas method to load URL (CORS bypass if possible)
+          console.log('Loading image from URL via canvas (fallback):', generatedImageUrl);
+          blob = await this.urlToBlob(generatedImageUrl);
+        }
+
+        // Clean up message listener since we got a direct response
+        navigator.serviceWorker.removeEventListener('message', messageHandler);
+        
+        // Generate unique image ID and save the processed image
+        const imageId = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const originalImageId = this.generateImageId(request.image);
+        
+        try {
+          // Save locally for immediate access and offline recovery
+          const localUrl = await this.saveImageLocally(imageId, originalImageId, request.edit_type, blob);
+          
+          // Save to Supabase for persistent storage and sharing
+          const supabaseUrl = await this.saveImageToSupabase(blob, imageId);
+          
+          console.log('✅ Image processed and saved successfully');
+          
+          return {
+            success: true,
+            edited_image: blob,
+            imageUrl: supabaseUrl,
+            imageId: imageId
+          };
+        } catch (saveError) {
+          console.error('⚠️ Image processing succeeded but saving failed:', saveError);
+          // Still return success since the image was processed, but log the save error
+          return {
+            success: true,
+            edited_image: blob,
+            error: `Image processed but saving failed: ${saveError instanceof Error ? saveError.message : 'Unknown save error'}`
+          };
+        }
+
+      } catch (fetchError) {
+        // Network error occurred - check if request was queued by service worker
+        console.log('Network error occurred, checking if request was queued...');
+        
+        // Wait a short time for service worker to process the queue
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Check network status
+        const isOnline = navigator.onLine;
+        
+        if (!isOnline) {
+          console.log('Offline detected, request queued for later retry');
+          navigator.serviceWorker.removeEventListener('message', messageHandler);
+          return {
+            success: false,
+            error: 'Request queued for retry when online',
+            queued: true,
+            networkStatus: 'offline'
+          };
+        }
+        
+        // If online but still failed, wait for service worker retry or timeout
+        console.log('Online but request failed - waiting for service worker retry...');
+        
+        try {
+          // Race between service worker response and timeout
+          const result = await Promise.race([responsePromise, timeoutPromise]);
+          return result;
+        } catch (timeoutError) {
+          console.log('Request timed out, likely queued for retry');
+          navigator.serviceWorker.removeEventListener('message', messageHandler);
+          return {
+            success: false,
+            error: 'Request queued for retry',
+            queued: true,
+            networkStatus: 'online'
+          };
+        }
+      }
 
     } catch (error) {
       console.error('Qwen API error:', error);

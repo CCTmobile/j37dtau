@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
@@ -12,6 +12,8 @@ import { AdminAccountSettings } from './admin/AdminAccountSettings';
 import { ReviewManagement } from './admin/ReviewManagement';
 import { ContentManager } from './info/admin/ContentManager';
 import AdminChatDashboard from './admin/AdminChatDashboard';
+import { ImageCropper } from './admin/ImageCropper';
+import { ProductFormRef } from './admin/ProductForm';
 import { useProducts } from '../contexts/ProductContext';
 import type { Product } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
@@ -24,6 +26,9 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
   const { products, fetchAllProducts } = useProducts();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [croppingImage, setCroppingImage] = useState<{ index: number; src: string; type: 'new' | 'existing'; form: 'create' | 'edit' } | null>(null);
+  const productFormRef = useRef<ProductFormRef>(null);
+  const editProductFormRef = useRef<ProductFormRef>(null);
 
   // Fetch all products (including inactive ones) for admin on mount
   useEffect(() => {
@@ -49,6 +54,39 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
 
   const handleRefreshProducts = () => {
     fetchAllProducts();
+  };
+
+  const handleCropImage = (index: number, src: string, type: 'new' | 'existing', form: 'create' | 'edit') => {
+    console.log('🎯 AdminDashboard: handleCropImage called:', { index, src: src.substring(0, 50) + '...', type, form });
+    setCroppingImage({ index, src, type, form });
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    console.log('✅ AdminDashboard: handleCropComplete called:', { blobSize: croppedBlob.size, croppingImage });
+    if (croppingImage) {
+      let targetRef: ProductFormRef | null = null;
+
+      if (croppingImage.form === 'edit') {
+        targetRef = editProductFormRef.current || null;
+      } else {
+        targetRef = productFormRef.current || null;
+      }
+
+      // Fallback if primary ref missing
+      if (!targetRef) {
+        targetRef = productFormRef.current || editProductFormRef.current;
+      }
+
+      if (targetRef) {
+        console.log('🔄 Calling ProductForm.handleCropComplete via ref');
+        targetRef.handleCropComplete(croppedBlob, croppingImage);
+        setCroppingImage(null);
+      } else {
+        console.error('❌ No ProductForm ref available for cropping');
+      }
+    } else {
+      console.warn('⚠️ handleCropComplete called but no croppingImage set');
+    }
   };
 
   return (
@@ -84,7 +122,11 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
 
         <TabsContent value="products">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ProductForm onSuccess={handleCreateSuccess} />
+            <ProductForm 
+              ref={productFormRef}
+              onSuccess={handleCreateSuccess}
+              onCropImage={handleCropImage}
+            />
             <div className="lg:col-span-2">
               <ProductTabs
                 onEditProduct={handleEditProduct}
@@ -100,10 +142,12 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
               </DialogHeader>
               {editingProduct && (
                 <ProductForm
+                  ref={editProductFormRef}
                   mode="edit"
                   product={editingProduct}
                   onSuccess={handleCreateSuccess}
                   onCancel={handleCancelEdit}
+                  onCropImage={handleCropImage}
                 />
               )}
             </DialogContent>
@@ -160,6 +204,12 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
         </TabsContent>
       </Tabs>
       <BottomSpacer />
+
+      <ImageCropper
+        src={croppingImage?.src || null}
+        onClose={() => setCroppingImage(null)}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }
