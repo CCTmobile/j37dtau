@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,7 +9,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Progress } from '../ui/progress';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save, Crop, ChevronDown } from 'lucide-react';
+import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save, Crop, ChevronDown, RotateCcw } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import ImageUploadService, { ImageUploadOptions } from '../../utils/imageUpload';
 import { createProduct, updateProduct } from '../../utils/supabase/client';
@@ -34,6 +34,7 @@ interface UploadedImage {
   status: 'pending' | 'uploading' | 'completed' | 'error';
   error?: string;
   progress: number;
+  replacementFor?: string;
 }
 
 export interface ProductFormRef {
@@ -62,6 +63,40 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
   const [newColorInput, setNewColorInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const replacementPreviewMap = useMemo(() => {
+    const map: Record<string, { preview: string; status: UploadedImage['status']; progress: number }> = {};
+    uploadedImages.forEach((img) => {
+      if (img.replacementFor) {
+        map[img.replacementFor] = {
+          preview: img.preview,
+          status: img.status,
+          progress: img.progress,
+        };
+      }
+    });
+    return map;
+  }, [uploadedImages]);
+
+  const newImageQueue = useMemo(() => (
+    uploadedImages
+      .map((img, index) => ({ img, index }))
+      .filter(({ img }) => !img.replacementFor)
+  ), [uploadedImages]);
+
+  const resetExistingImageReplacement = useCallback((imageUrl: string) => {
+    setUploadedImages((prev) => {
+      const updated: UploadedImage[] = [];
+      prev.forEach((img) => {
+        if (img.replacementFor === imageUrl) {
+          URL.revokeObjectURL(img.preview);
+        } else {
+          updated.push(img);
+        }
+      });
+      return updated;
+    });
+  }, []);
+
   // Expose handleCropComplete method to parent
   useImperativeHandle(ref, () => ({
     handleCropComplete: (croppedImageBlob: Blob, croppingContext: { index: number; type: 'new' | 'existing' }) => {
@@ -82,18 +117,38 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
           return newImages;
         });
       } else { // 'existing'
-        // When an existing image is cropped, we treat it as a new image to be uploaded
-        // and remove the old one from the existing list.
-        setExistingImages(prev => prev.filter((_, index) => index !== croppingContext.index));
-        setUploadedImages(prev => [
-          ...prev,
-          {
-            file: croppedFile,
-            preview: previewUrl,
-            status: 'pending',
-            progress: 0,
+        const originalUrl = existingImages[croppingContext.index];
+        if (!originalUrl) {
+          toast.error('Unable to locate original image for replacement');
+          return;
+        }
+
+        setUploadedImages(prev => {
+          const updated = [...prev];
+          const existingReplacementIndex = updated.findIndex(img => img.replacementFor === originalUrl);
+
+          if (existingReplacementIndex !== -1) {
+            const previousPreview = updated[existingReplacementIndex].preview;
+            URL.revokeObjectURL(previousPreview);
+            updated[existingReplacementIndex] = {
+              ...updated[existingReplacementIndex],
+              file: croppedFile,
+              preview: previewUrl,
+              status: 'pending',
+              progress: 0,
+            };
+          } else {
+            updated.push({
+              file: croppedFile,
+              preview: previewUrl,
+              status: 'pending',
+              progress: 0,
+              replacementFor: originalUrl,
+            });
           }
-        ]);
+
+          return updated;
+        });
       }
 
       toast.success("Image cropped successfully. Ready for upload.");
@@ -176,6 +231,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
   };
 
   const removeExistingImage = (imageUrl: string) => {
+    resetExistingImageReplacement(imageUrl);
     setExistingImages(prev => prev.filter(img => img !== imageUrl));
   };
 
@@ -266,6 +322,10 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
       let finalImageUrls = [...existingImages];
 
       if (uploadedImages.length > 0) {
+        const replacementTargets = uploadedImages.map(img => img.replacementFor ?? null);
+        const updatedExistingImages = [...existingImages];
+        const addedImageUrls: string[] = [];
+
         // Update image statuses to uploading
         setUploadedImages(prev =>
           prev.map(img => ({ ...img, status: 'uploading' as const, progress: 0 }))
@@ -310,6 +370,18 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                   : img
               )
             );
+
+            const replacementTarget = replacementTargets[fileIndex];
+            if (replacementTarget) {
+              const replaceIndex = updatedExistingImages.indexOf(replacementTarget);
+              if (replaceIndex !== -1) {
+                updatedExistingImages[replaceIndex] = result.url;
+              } else {
+                addedImageUrls.push(result.url);
+              }
+            } else {
+              addedImageUrls.push(result.url);
+            }
           }
         ).catch(async (error) => {
           console.error('Upload failed:', error);
@@ -333,9 +405,16 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
           return [];
         });
 
-        // Add new image URLs to the final list
-        const newImageUrls = results.map(result => result.url);
-        finalImageUrls = [...existingImages, ...newImageUrls];
+        if (results.length > 0 || addedImageUrls.length > 0) {
+          // Build final image list combining updated existing images with new additions
+          finalImageUrls = [...updatedExistingImages, ...addedImageUrls];
+
+          // Ensure final list has unique URLs to avoid duplicates in case of replacements
+          finalImageUrls = Array.from(new Set(finalImageUrls));
+        } else {
+          finalImageUrls = [...existingImages];
+        }
+
         await updateProduct(targetProductId, { images: finalImageUrls });
 
         toast.success(`${mode === 'edit' ? 'Updated' : 'Created'} product with ${results.length} new image(s)`);
@@ -361,6 +440,8 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
           images: []
         });
         setExistingImages([]);
+      } else {
+        setExistingImages(finalImageUrls);
       }
 
       // Clean up preview URLs
@@ -568,19 +649,34 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {existingImages.map((imageUrl, index) => (
                     <div key={`existing-${index}`} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
-                        console.log('🖼️ Clicking existing image for cropping:', { index, imageUrl, mode });
-                        onCropImage?.(index, imageUrl, 'existing', mode);
-                      }}>
-                        <img
-                          src={imageUrl}
-                          alt={`Existing ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                          <Crop className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" />
-                        </div>
-                      </div>
+                      {(() => {
+                        const replacement = replacementPreviewMap[imageUrl];
+                        const displaySrc = replacement?.preview ?? imageUrl;
+                        const statusBadge = replacement?.status;
+
+                        return (
+                          <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
+                            console.log('🖼️ Clicking existing image for cropping:', { index, imageUrl, mode });
+                            onCropImage?.(index, displaySrc, 'existing', mode);
+                          }}>
+                            <img
+                              src={displaySrc}
+                              alt={`Existing ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                              <Crop className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" />
+                            </div>
+                            {replacement && (
+                              <div className="absolute top-2 left-2">
+                                <Badge variant="secondary" className="bg-amber-500/90 text-black shadow">
+                                  {statusBadge === 'uploading' ? 'Uploading…' : statusBadge === 'completed' ? 'Updated' : 'Edited'}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <Button
                         type="button"
                         variant="destructive"
@@ -590,6 +686,17 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                       >
                         <X className="h-3 w-3" />
                       </Button>
+                      {replacementPreviewMap[imageUrl] && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-7 w-7 rounded-full border border-white/40 bg-black/60 text-white"
+                          onClick={(e) => { e.stopPropagation(); resetExistingImageReplacement(imageUrl); }}
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -632,11 +739,11 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
             </div>
 
             {/* New Image Previews */}
-            {uploadedImages.length > 0 && (
+            {newImageQueue.length > 0 && (
               <div className="mt-4">
                 <p className="text-sm font-medium mb-2">New Images to Upload:</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {uploadedImages.map((image, index) => (
+                  {newImageQueue.map(({ img: image, index }) => (
                     <div key={`new-${index}`} className="relative group">
                       <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
                         console.log('🖼️ Clicking new image for cropping:', { index, preview: image.preview, mode });
