@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { MetricsCards } from './admin/MetricsCards';
 import { SalesChart } from './admin/SalesChart';
 import { CategoryChart } from './admin/CategoryChart';
@@ -13,6 +13,7 @@ import { ReviewManagement } from './admin/ReviewManagement';
 import { ContentManager } from './info/admin/ContentManager';
 import AdminChatDashboard from './admin/AdminChatDashboard';
 import { ImageCropper } from './admin/ImageCropper';
+import type { CropCompletionResult } from './admin/ImageCropper';
 import { ProductFormRef } from './admin/ProductForm';
 import { useProducts } from '../contexts/ProductContext';
 import type { Product } from '../App';
@@ -61,8 +62,13 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
     setCroppingImage({ index, src, type, form });
   };
 
-  const handleCropComplete = (croppedBlob: Blob) => {
-    console.log('✅ AdminDashboard: handleCropComplete called:', { blobSize: croppedBlob.size, croppingImage });
+  const handleCropComplete = (result: CropCompletionResult) => {
+    console.log('✅ AdminDashboard: handleCropComplete called:', {
+      blobSize: result.blob.size,
+      source: result.source,
+      hasStoredRun: !!result.storedRun,
+      croppingImage
+    });
     if (croppingImage) {
       let targetRef: ProductFormRef | null = null;
 
@@ -79,7 +85,7 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
 
       if (targetRef) {
         console.log('🔄 Calling ProductForm.handleCropComplete via ref');
-        targetRef.handleCropComplete(croppedBlob, croppingImage);
+        targetRef.handleCropComplete(result, croppingImage);
         setCroppingImage(null);
       } else {
         console.error('❌ No ProductForm ref available for cropping');
@@ -139,6 +145,9 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit Product</DialogTitle>
+                <DialogDescription>
+                  Update existing product details, adjust pricing, and manage media assets.
+                </DialogDescription>
               </DialogHeader>
               {editingProduct && (
                 <ProductForm

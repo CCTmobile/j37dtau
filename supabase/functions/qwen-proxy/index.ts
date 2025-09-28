@@ -1,4 +1,33 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.2";
+import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const STORAGE_BUCKET = "product-images";
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("Missing Supabase environment variables");
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    persistSession: false
+  }
+});
+
+const encoder = new TextEncoder();
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const normalized = base64.replace(/\s/g, "");
+  const binary = atob(normalized);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
 serve(async (req) => {
   const corsHeaders = {
@@ -101,16 +130,81 @@ serve(async (req) => {
       }
     }
 
-    // Return JSON with base64 data URL
+    let results: any[] = [];
+
+    if (base64Image) {
+      try {
+        const originalBytes = base64ToUint8Array(base64Image);
+        const image = await Image.decode(originalBytes);
+
+        const runId = `ai_run_${Date.now()}_${crypto.randomUUID()}`;
+        const basePath = `ai-previews/${runId}`;
+        const fullPath = `${basePath}/full.webp`;
+        const thumbPath = `${basePath}/thumb.webp`;
+
+        const fullWebpBytes = await image.encodeWebp(90);
+        const thumbImage = image.clone();
+        thumbImage.resize(512, Image.RESIZE_AUTO);
+        const thumbWebpBytes = await thumbImage.encodeWebp(75);
+
+        const fullBlob = new Blob([fullWebpBytes], { type: "image/webp" });
+        const thumbBlob = new Blob([thumbWebpBytes], { type: "image/webp" });
+
+        const { error: fullUploadError } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(fullPath, fullBlob, {
+            contentType: "image/webp",
+            upsert: false
+          });
+
+        if (fullUploadError) {
+          throw fullUploadError;
+        }
+
+        const { error: thumbUploadError } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(thumbPath, thumbBlob, {
+            contentType: "image/webp",
+            upsert: false
+          });
+
+        if (thumbUploadError) {
+          throw thumbUploadError;
+        }
+
+        const { data: fullPublic } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(fullPath);
+
+        const { data: thumbPublic } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(thumbPath);
+
+        results.push({
+          runId,
+          storagePath: fullPath,
+          thumbnailPath: thumbPath,
+          publicUrl: fullPublic.publicUrl,
+          thumbnailUrl: thumbPublic.publicUrl,
+          mimeType: "image/webp"
+        });
+
+        console.log("Stored AI result in Supabase storage", { runId, fullPath, thumbPath });
+      } catch (storageError) {
+        console.error("Failed to store AI result in storage, returning base64 fallback", storageError);
+        results.push({ imageData: `data:${mimeType};base64,${base64Image}` });
+      }
+    }
+
     const normalizedResponse = {
       output: {
-        results: base64Image ? [{ imageData: `data:${mimeType};base64,${base64Image}` }] : []
+        results
       },
       usage: data.usage,
       request_id: data.request_id
     };
 
-    console.log('Returning normalized response with base64 image data');
+    console.log('Returning normalized response with', results.length, 'result item(s)');
 
     return new Response(JSON.stringify(normalizedResponse), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

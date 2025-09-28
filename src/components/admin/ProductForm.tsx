@@ -12,10 +12,12 @@ import { Badge } from '../ui/badge';
 import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save, Crop, ChevronDown, RotateCcw } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import ImageUploadService, { ImageUploadOptions } from '../../utils/imageUpload';
-import { createProduct, updateProduct } from '../../utils/supabase/client';
+import { createProduct, updateProduct, supabase } from '../../utils/supabase/client';
 import { toast } from 'sonner';
 import type { Product } from '../../App';
 import { ImageCropper } from './ImageCropper';
+import type { CropCompletionResult } from './ImageCropper';
+import type { StoredAiRun } from '../../utils/qwenImageEditor';
 
 interface ProductFormProps {
   mode?: 'create' | 'edit';
@@ -23,22 +25,32 @@ interface ProductFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
   onCropImage?: (index: number, src: string, type: 'new' | 'existing', form: 'create' | 'edit') => void;
-  onCropComplete?: (croppedImageBlob: Blob, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
+  onCropComplete?: (result: CropCompletionResult, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
 }
 
 interface UploadedImage {
   file: File;
   preview: string;
+  previewIsObjectUrl: boolean;
   url?: string;
   thumbnailUrl?: string;
   status: 'pending' | 'uploading' | 'completed' | 'error';
   error?: string;
   progress: number;
   replacementFor?: string;
+  storedRun?: StoredAiRun | null;
 }
 
 export interface ProductFormRef {
-  handleCropComplete: (croppedImageBlob: Blob, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
+  handleCropComplete: (result: CropCompletionResult, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
+}
+
+interface PromoteAiRunResponse {
+  runId: string;
+  storagePath: string;
+  thumbnailPath: string;
+  publicUrl: string;
+  thumbnailUrl?: string;
 }
 
 export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode = 'create', product = null, onSuccess, onCancel, onCropImage }, ref) => {
@@ -62,6 +74,18 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
   const [newSizeInput, setNewSizeInput] = useState('');
   const [newColorInput, setNewColorInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [existingPreviewOverrides, setExistingPreviewOverrides] = useState<Record<string, string>>({});
+  const existingOverrideUrlsRef = useRef<string[]>([]);
+
+  const revokeIfObjectUrl = useCallback((url?: string | null) => {
+    if (url && url.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.debug('Preview cleanup failed', error);
+      }
+    }
+  }, []);
 
   const replacementPreviewMap = useMemo(() => {
     const map: Record<string, { preview: string; status: UploadedImage['status']; progress: number }> = {};
@@ -83,45 +107,85 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
       .filter(({ img }) => !img.replacementFor)
   ), [uploadedImages]);
 
+  useEffect(() => {
+    existingOverrideUrlsRef.current = Object.values(existingPreviewOverrides).filter(url => url.startsWith('blob:'));
+  }, [existingPreviewOverrides]);
+
   const resetExistingImageReplacement = useCallback((imageUrl: string) => {
     setUploadedImages((prev) => {
       const updated: UploadedImage[] = [];
       prev.forEach((img) => {
         if (img.replacementFor === imageUrl) {
-          URL.revokeObjectURL(img.preview);
+          if (img.previewIsObjectUrl) {
+            revokeIfObjectUrl(img.preview);
+          }
         } else {
           updated.push(img);
         }
       });
       return updated;
     });
+    setExistingPreviewOverrides((prev) => {
+      const updated = { ...prev };
+      const previousOverride = updated[imageUrl];
+      if (previousOverride) {
+        revokeIfObjectUrl(previousOverride);
+        delete updated[imageUrl];
+      }
+      return updated;
+    });
   }, []);
 
   // Expose handleCropComplete method to parent
   useImperativeHandle(ref, () => ({
-    handleCropComplete: (croppedImageBlob: Blob, croppingContext: { index: number; type: 'new' | 'existing' }) => {
-      const croppedFile = new File([croppedImageBlob], "cropped_image.png", { type: "image/png" });
-      const previewUrl = URL.createObjectURL(croppedFile);
+    handleCropComplete: (result: CropCompletionResult, croppingContext: { index: number; type: 'new' | 'existing' }) => {
+      const mimeType = result.storedRun?.mimeType ?? result.blob.type ?? 'image/png';
+      const extension = mimeType.split('/')[1] || 'png';
+      const fileName = result.storedRun ? `ai-edit.${extension}` : `cropped_image.${extension}`;
+      const croppedFile = new File([result.blob], fileName, { type: mimeType });
+
+      const previewUrl = result.storedRun
+        ? result.storedRun.thumbnailUrl || result.storedRun.publicUrl
+        : URL.createObjectURL(croppedFile);
+      const previewIsObjectUrl = !result.storedRun;
 
       if (croppingContext.type === 'new') {
         setUploadedImages(prev => {
           const newImages = [...prev];
-          const oldPreview = newImages[croppingContext.index].preview;
-          URL.revokeObjectURL(oldPreview); // Clean up old preview
-          newImages[croppingContext.index] = {
-            ...newImages[croppingContext.index],
-            file: croppedFile,
-            preview: previewUrl,
-            status: 'pending',
-          };
+          const target = newImages[croppingContext.index];
+          if (target) {
+            if (target.previewIsObjectUrl) {
+              revokeIfObjectUrl(target.preview);
+            }
+            newImages[croppingContext.index] = {
+              ...target,
+              file: croppedFile,
+              preview: previewUrl,
+              previewIsObjectUrl,
+              status: 'pending',
+              progress: 0,
+              storedRun: result.storedRun ?? null,
+              error: undefined
+            };
+          }
           return newImages;
         });
-      } else { // 'existing'
+      } else {
         const originalUrl = existingImages[croppingContext.index];
         if (!originalUrl) {
           toast.error('Unable to locate original image for replacement');
           return;
         }
+
+        setExistingPreviewOverrides((prev) => {
+          const updated = { ...prev };
+          const previousOverride = updated[originalUrl];
+          if (previousOverride) {
+            revokeIfObjectUrl(previousOverride);
+          }
+          updated[originalUrl] = previewUrl;
+          return updated;
+        });
 
         setUploadedImages(prev => {
           const updated = [...prev];
@@ -129,21 +193,28 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
 
           if (existingReplacementIndex !== -1) {
             const previousPreview = updated[existingReplacementIndex].preview;
-            URL.revokeObjectURL(previousPreview);
+            if (updated[existingReplacementIndex].previewIsObjectUrl) {
+              revokeIfObjectUrl(previousPreview);
+            }
             updated[existingReplacementIndex] = {
               ...updated[existingReplacementIndex],
               file: croppedFile,
               preview: previewUrl,
+              previewIsObjectUrl,
               status: 'pending',
               progress: 0,
+              storedRun: result.storedRun ?? null,
+              error: undefined
             };
           } else {
             updated.push({
               file: croppedFile,
               preview: previewUrl,
+              previewIsObjectUrl,
               status: 'pending',
               progress: 0,
               replacementFor: originalUrl,
+              storedRun: result.storedRun ?? null,
             });
           }
 
@@ -151,7 +222,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
         });
       }
 
-      toast.success("Image cropped successfully. Ready for upload.");
+      toast.success(result.source === 'ai' ? 'AI image ready to apply.' : 'Image cropped successfully. Ready for upload.');
     }
   }));
 
@@ -160,9 +231,12 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
     return () => {
       // Clean up all preview URLs when component unmounts
       uploadedImages.forEach(img => {
-        if (img.preview) {
-          URL.revokeObjectURL(img.preview);
+        if (img.previewIsObjectUrl) {
+          revokeIfObjectUrl(img.preview);
         }
+      });
+      existingOverrideUrlsRef.current.forEach((url) => {
+        revokeIfObjectUrl(url);
       });
     };
   }, [uploadedImages]);
@@ -203,8 +277,10 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
     const newImages: UploadedImage[] = validFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file),
+      previewIsObjectUrl: true,
       status: 'pending' as const,
-      progress: 0
+      progress: 0,
+      storedRun: null
     }));
 
     setUploadedImages(prev => [...prev, ...newImages]);
@@ -215,8 +291,8 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
     const imageToRemove = uploadedImages[index];
 
     // Clean up preview URL
-    if (imageToRemove.preview) {
-      URL.revokeObjectURL(imageToRemove.preview);
+    if (imageToRemove.previewIsObjectUrl) {
+      revokeIfObjectUrl(imageToRemove.preview);
     }
 
     // If the image was already uploaded to storage, we should delete it
@@ -423,6 +499,17 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
         await updateProduct(targetProductId, { images: finalImageUrls });
         toast.success(`Product ${mode === 'edit' ? 'updated' : 'created'} successfully!`);
       }
+
+      // Clear any temporary overrides now that images are synced
+      Object.values(existingPreviewOverrides).forEach((overrideUrl) => {
+        try {
+          URL.revokeObjectURL(overrideUrl);
+        } catch (err) {
+          console.debug('Preview override cleanup failed after upload', err);
+        }
+      });
+      setExistingPreviewOverrides({});
+      existingOverrideUrlsRef.current = [];
 
       onSuccess?.();
 
@@ -651,8 +738,9 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                     <div key={`existing-${index}`} className="relative group">
                       {(() => {
                         const replacement = replacementPreviewMap[imageUrl];
-                        const displaySrc = replacement?.preview ?? imageUrl;
-                        const statusBadge = replacement?.status;
+                        const overridePreview = existingPreviewOverrides[imageUrl];
+                        const displaySrc = replacement?.preview ?? overridePreview ?? imageUrl;
+                        const statusBadge = replacement?.status ?? (overridePreview ? 'pending' : undefined);
 
                         return (
                           <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
@@ -667,7 +755,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                               <Crop className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" />
                             </div>
-                            {replacement && (
+                            {(replacement || overridePreview) && (
                               <div className="absolute top-2 left-2">
                                 <Badge variant="secondary" className="bg-amber-500/90 text-black shadow">
                                   {statusBadge === 'uploading' ? 'Uploading…' : statusBadge === 'completed' ? 'Updated' : 'Edited'}
@@ -686,7 +774,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                       >
                         <X className="h-3 w-3" />
                       </Button>
-                      {replacementPreviewMap[imageUrl] && (
+                      {(replacementPreviewMap[imageUrl] || existingPreviewOverrides[imageUrl]) && (
                         <Button
                           type="button"
                           variant="ghost"

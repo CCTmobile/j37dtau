@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useId } from 'react';
+import { useState, useRef, useEffect, useId, useCallback } from 'react';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '../ui/button';
@@ -9,11 +9,19 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Upload, Wand2, Scissors, Palette, Sparkles, Image as ImageIcon, Square, Circle, Heart, Star, Zap, Sun, Moon, Cloud, TreePine, Mountain, Waves, Camera, Brush, Layers, RotateCcw, X, Wifi, WifiOff, Clock, AlertTriangle } from 'lucide-react';
 import { canvasPreview } from '@/utils/canvasPreview';
 import { createQwenEditor } from '@/utils/qwenImageEditor';
+import type { StoredAiRun } from '@/utils/qwenImageEditor';
 import { serviceWorkerManager, type AIProcessingCallbacks } from '@/utils/serviceWorkerManager';
+
+export interface CropCompletionResult {
+  blob: Blob;
+  storedRun: StoredAiRun | null;
+  source: 'original' | 'ai' | 'cropped';
+  previewUrl?: string | null;
+}
 
 interface ImageCropperProps {
   src: string | null;
-  onCropComplete: (croppedImage: Blob) => void;
+  onCropComplete: (result: CropCompletionResult) => void;
   onClose: () => void;
   aspect?: number;
 }
@@ -54,13 +62,6 @@ async function imageUrlToDataUrl(url: string): Promise<string> {
   });
 }
 
-interface ImageCropperProps {
-  src: string | null;
-  onCropComplete: (croppedImage: Blob) => void;
-  onClose: () => void;
-  aspect?: number;
-}
-
 export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: ImageCropperProps) {
   const descriptionId = useId();
   const [crop, setCrop] = useState<Crop>();
@@ -71,6 +72,7 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [finalCroppedImage, setFinalCroppedImage] = useState<Blob | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
+  const [storedRun, setStoredRun] = useState<StoredAiRun | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>('natural');
   const [selectedShape, setSelectedShape] = useState<string>('original');
   const [selectedScenario, setSelectedScenario] = useState<string>('general');
@@ -88,6 +90,16 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
+
+  const revokeIfObjectUrl = useCallback((url?: string | null) => {
+    if (url && url.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.debug('Failed to revoke object URL', error);
+      }
+    }
+  }, []);
 
   // Convert external URL to data URL to avoid CORS issues
   useEffect(() => {
@@ -264,7 +276,13 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
       previewCanvas.toBlob((blob) => {
         if (blob) {
           console.log('✅ Crop successful! Blob size:', blob.size, 'bytes');
-          onCropComplete(blob);
+          setStoredRun(null);
+          onCropComplete({
+            blob,
+            storedRun: null,
+            source: 'cropped',
+            previewUrl: null
+          });
         } else {
           console.error('❌ Failed to create blob from canvas');
           alert('Failed to crop image. Please try again.');
@@ -310,9 +328,12 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
 
     // Cleanup previous object URL
     if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
+      revokeIfObjectUrl(objectUrl);
       setObjectUrl(null);
     }
+
+    setStoredRun(null);
+    setFinalCroppedImage(null);
 
     setProcessingStartTime(Date.now());
     setProcessingElapsed(0);
@@ -365,9 +386,20 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
         throw new Error(result.error || 'AI processing failed');
       }
 
-      if (result.edited_image) {
+      if (result.storedRun) {
+        setStoredRun(result.storedRun);
+        setProcessedImage(result.storedRun.publicUrl);
+        setObjectUrl(null);
+
+        // Reset crop area for the new image
+        setCrop(undefined);
+        setCompletedCrop(undefined);
+
+        console.log(`🎉 Edit completed successfully - stored run ready`, result.storedRun);
+      } else if (result.edited_image) {
         // Create local object URL from blob for preview and cropping
         const resultUrl = URL.createObjectURL(result.edited_image);
+        setStoredRun(null);
         setProcessedImage(resultUrl);
         setImageSrc(resultUrl); // Update main image for further editing
         setObjectUrl(resultUrl); // Track for cleanup
@@ -377,6 +409,13 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
         setCompletedCrop(undefined);
         
         console.log(`🎉 Edit completed successfully - local preview ready`); // Debug log
+      } else if (result.imageUrl) {
+        setStoredRun(null);
+        setProcessedImage(result.imageUrl);
+        setObjectUrl(null);
+        setCrop(undefined);
+        setCompletedCrop(undefined);
+        console.log('🎉 Edit completed with image URL response');
       }
 
     } catch (error) {
@@ -433,9 +472,7 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
   // Cleanup useEffect
   useEffect(() => {
     return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
+      revokeIfObjectUrl(objectUrl);
     };
   }, [objectUrl]);
 
@@ -499,6 +536,7 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
               // If imageBlob is already a Blob, use it directly
               if (imageBlob instanceof Blob) {
                 const resultUrl = URL.createObjectURL(imageBlob);
+                setStoredRun(null);
                 setProcessedImage(resultUrl);
                 setImageSrc(resultUrl);
                 setObjectUrl(resultUrl);
@@ -543,10 +581,14 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
   }, []);
 
   const resetAll = () => {
+    if (objectUrl) {
+      revokeIfObjectUrl(objectUrl);
+    }
     setCrop(undefined);
     setCompletedCrop(undefined);
     setFinalCroppedImage(null);
     setProcessedImage(null);
+    setStoredRun(null);
     setReferenceImages([]);
     setSelectedColor('natural');
     setSelectedShape('original');
@@ -1177,24 +1219,42 @@ export function ImageCropper({ src, onCropComplete, onClose, aspect = 3 / 4 }: I
             onClick={async () => {
               try {
                 let imageToSave: Blob;
+                let resultStoredRun: StoredAiRun | null = null;
+                let source: 'original' | 'ai' | 'cropped' = 'original';
+                let previewUrl: string | null = processedImage || imageSrc;
                 
                 if (finalCroppedImage) {
                   // Use the cropped image
                   imageToSave = finalCroppedImage;
                   console.log('💾 Saving cropped image:', { size: imageToSave.size, type: imageToSave.type });
+                  source = 'cropped';
+                  resultStoredRun = null;
                 } else if (processedImage) {
                   // Use the AI processed image
                   const response = await fetch(processedImage);
                   imageToSave = await response.blob();
                   console.log('💾 Saving AI processed image:', { size: imageToSave.size, type: imageToSave.type });
+                  if (storedRun) {
+                    resultStoredRun = storedRun;
+                    source = 'ai';
+                  }
                 } else {
                   // Use the original image
                   const response = await fetch(imageSrc!);
                   imageToSave = await response.blob();
                   console.log('💾 Saving original image:', { size: imageToSave.size, type: imageToSave.type });
+                  if (storedRun) {
+                    resultStoredRun = storedRun;
+                    source = 'ai';
+                  }
                 }
                 
-                onCropComplete(imageToSave);
+                onCropComplete({
+                  blob: imageToSave,
+                  storedRun: resultStoredRun,
+                  source,
+                  previewUrl
+                });
                 onClose();
               } catch (error) {
                 console.error('❌ Failed to save image:', error);

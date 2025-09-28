@@ -25,6 +25,16 @@ export interface QwenEditResponse {
   networkStatus?: 'online' | 'offline';
   imageUrl?: string; // URL of saved image
   imageId?: string; // Unique ID for the processed image
+  storedRun?: StoredAiRun;
+}
+
+export interface StoredAiRun {
+  runId: string;
+  storagePath: string;
+  thumbnailPath: string;
+  publicUrl: string;
+  thumbnailUrl: string;
+  mimeType: string;
 }
 
 export interface StoredImage {
@@ -385,15 +395,27 @@ switch (editType) {
         }
 
         // Extract generated image from response
-        let imageData = null;
-        let generatedImageUrl = null;  // Declare generatedImageUrl here
+        let imageData: string | null = null;
+        let generatedImageUrl: string | null = null;
+        let storedRun: StoredAiRun | null = null;
 
         if (result.output && result.output.results && result.output.results[0]) {
           const resultItem = result.output.results[0];
           console.log('Result item:', resultItem);
 
-          if (resultItem.imageData) {
-            // Base64 data URL returned by Edge Function (preferred)
+          if (resultItem.runId) {
+            storedRun = {
+              runId: resultItem.runId,
+              storagePath: resultItem.storagePath,
+              thumbnailPath: resultItem.thumbnailPath,
+              publicUrl: resultItem.publicUrl,
+              thumbnailUrl: resultItem.thumbnailUrl,
+              mimeType: resultItem.mimeType || 'image/webp'
+            };
+            generatedImageUrl = storedRun.publicUrl;
+            console.log('Received stored AI run metadata from Edge Function');
+          } else if (resultItem.imageData) {
+            // Base64 data URL returned by Edge Function (preferred fallback)
             imageData = resultItem.imageData;
             console.log('Received base64 image data from Edge Function');
           } else if (resultItem.url) {
@@ -410,12 +432,26 @@ switch (editType) {
           }
         }
 
-        if (!imageData && !generatedImageUrl) {
+        if (!storedRun && !imageData && !generatedImageUrl) {
           console.log('Full API response for debugging:', JSON.stringify(result, null, 2));
           throw new Error('No image data or URL found in API response.');
         }
 
-        let blob;
+        // Clean up message listener since we got a direct response
+        navigator.serviceWorker.removeEventListener('message', messageHandler);
+
+        if (storedRun) {
+          return {
+            success: true,
+            storedRun,
+            imageUrl: storedRun.publicUrl,
+            imageId: storedRun.runId
+          };
+        }
+
+        let blob: Blob;
+        let resultingUrl: string | undefined;
+
         if (imageData) {
           // Convert base64 data URL to blob (no CORS issues)
           const base64Data = imageData.split(',')[1];
@@ -425,29 +461,28 @@ switch (editType) {
             bytes[i] = binaryString.charCodeAt(i);
           }
           blob = new Blob([bytes], { type: 'image/png' });
+          resultingUrl = undefined;
           console.log('Converted base64 to blob successfully');
         } else {
           // Fallback: Use canvas method to load URL (CORS bypass if possible)
           console.log('Loading image from URL via canvas (fallback):', generatedImageUrl);
-          blob = await this.urlToBlob(generatedImageUrl);
+          blob = await this.urlToBlob(generatedImageUrl!);
+          resultingUrl = generatedImageUrl ?? undefined;
         }
 
-        // Clean up message listener since we got a direct response
-        navigator.serviceWorker.removeEventListener('message', messageHandler);
-        
-        // Generate unique image ID and save the processed image
+        // Generate unique image ID and save the processed image locally and to Supabase storage
         const imageId = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const originalImageId = this.generateImageId(request.image);
-        
+
         try {
           // Save locally for immediate access and offline recovery
-          const localUrl = await this.saveImageLocally(imageId, originalImageId, request.edit_type, blob);
-          
+          await this.saveImageLocally(imageId, originalImageId, request.edit_type, blob);
+
           // Save to Supabase for persistent storage and sharing
           const supabaseUrl = await this.saveImageToSupabase(blob, imageId);
-          
+
           console.log('✅ Image processed and saved successfully');
-          
+
           return {
             success: true,
             edited_image: blob,
@@ -460,6 +495,7 @@ switch (editType) {
           return {
             success: true,
             edited_image: blob,
+            imageUrl: resultingUrl,
             error: `Image processed but saving failed: ${saveError instanceof Error ? saveError.message : 'Unknown save error'}`
           };
         }
