@@ -14,7 +14,7 @@ import { ContentManager } from './info/admin/ContentManager';
 import AdminChatDashboard from './admin/AdminChatDashboard';
 import { ImageCropper } from './admin/ImageCropper';
 import type { CropCompletionResult } from './admin/ImageCropper';
-import { ProductFormRef } from './admin/ProductForm';
+import type { CropImageContext, ProductFormRef } from './admin/ProductForm';
 import { useProducts } from '../contexts/ProductContext';
 import type { Product } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
@@ -27,7 +27,7 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
   const { products, fetchAllProducts } = useProducts();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [croppingImage, setCroppingImage] = useState<{ index: number; src: string; type: 'new' | 'existing'; form: 'create' | 'edit' } | null>(null);
+  const [croppingImage, setCroppingImage] = useState<CropImageContext | null>(null);
   const productFormRef = useRef<ProductFormRef>(null);
   const editProductFormRef = useRef<ProductFormRef>(null);
 
@@ -57,9 +57,10 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
     fetchAllProducts();
   };
 
-  const handleCropImage = (index: number, src: string, type: 'new' | 'existing', form: 'create' | 'edit') => {
+  const handleCropImage = (context: CropImageContext) => {
+    const { index, src, type, form } = context;
     console.log('🎯 AdminDashboard: handleCropImage called:', { index, src: src.substring(0, 50) + '...', type, form });
-    setCroppingImage({ index, src, type, form });
+    setCroppingImage(context);
   };
 
   const handleCropComplete = (result: CropCompletionResult) => {
@@ -218,6 +219,7 @@ export function AdminDashboard({ defaultTab = "overview" }: AdminDashboardProps)
         src={croppingImage?.src || null}
         onClose={() => setCroppingImage(null)}
         onCropComplete={handleCropComplete}
+        history={croppingImage?.history}
       />
     </div>
   );

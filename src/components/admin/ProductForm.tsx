@@ -12,23 +12,39 @@ import { Badge } from '../ui/badge';
 import { Plus, Upload, X, Image as ImageIcon, AlertCircle, CheckCircle, Trash2, Save, Crop, ChevronDown, RotateCcw } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import ImageUploadService, { ImageUploadOptions } from '../../utils/imageUpload';
-import { createProduct, updateProduct, supabase } from '../../utils/supabase/client';
+import { createProduct, updateProduct } from '../../utils/supabase/client';
 import { toast } from 'sonner';
 import type { Product } from '../../App';
 import { ImageCropper } from './ImageCropper';
-import type { CropCompletionResult } from './ImageCropper';
+import type { CropCompletionResult, EditHistoryEntry } from './ImageCropper';
 import type { StoredAiRun } from '../../utils/qwenImageEditor';
+
+const createUploadedImageId = () => (
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `img-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+);
+
+export interface CropImageContext {
+  index: number;
+  src: string;
+  type: 'new' | 'existing';
+  form: 'create' | 'edit';
+  history?: EditHistoryEntry[];
+}
 
 interface ProductFormProps {
   mode?: 'create' | 'edit';
   product?: Product | null;
   onSuccess?: () => void;
   onCancel?: () => void;
-  onCropImage?: (index: number, src: string, type: 'new' | 'existing', form: 'create' | 'edit') => void;
+  onCropImage?: (context: CropImageContext) => void;
   onCropComplete?: (result: CropCompletionResult, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
 }
 
 interface UploadedImage {
+  id: string;
+  createdAt: number;
   file: File;
   preview: string;
   previewIsObjectUrl: boolean;
@@ -38,12 +54,41 @@ interface UploadedImage {
   error?: string;
   progress: number;
   replacementFor?: string;
-  storedRun?: StoredAiRun | null;
+  storedRun: StoredAiRun | null;
+  source: 'new' | 'existing';
+  editType?: string;
 }
 
 export interface ProductFormRef {
   handleCropComplete: (result: CropCompletionResult, croppingContext: { index: number; type: 'new' | 'existing' }) => void;
 }
+
+const formatHistoryLabel = (image: UploadedImage) => {
+  if (image.editType) {
+    return image.editType
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  if (image.storedRun) {
+    return 'AI Edit';
+  }
+
+  return image.source === 'existing' ? 'Replacement' : 'Upload';
+};
+
+const toHistoryEntry = (image: UploadedImage, overrides: Partial<EditHistoryEntry> = {}): EditHistoryEntry => {
+  return {
+    id: overrides.id ?? image.id,
+    previewUrl: overrides.previewUrl ?? image.preview ?? image.storedRun?.publicUrl ?? '',
+    thumbnailUrl: overrides.thumbnailUrl ?? image.thumbnailUrl ?? image.storedRun?.thumbnailUrl ?? image.preview,
+    storedRun: overrides.storedRun ?? image.storedRun ?? null,
+    label: overrides.label ?? formatHistoryLabel(image),
+    createdAt: overrides.createdAt ?? image.createdAt ?? Date.now(),
+    status: overrides.status ?? image.status,
+    source: overrides.source ?? (image.storedRun ? 'ai' : image.source === 'existing' ? 'cropped' : 'upload'),
+  };
+};
 
 interface PromoteAiRunResponse {
   runId: string;
@@ -136,9 +181,39 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
     });
   }, []);
 
+  const getHistoryForExistingImage = useCallback((imageUrl: string, position: number): EditHistoryEntry[] => {
+    const baseEntry: EditHistoryEntry = {
+      id: `existing-${position}`,
+      previewUrl: imageUrl,
+      thumbnailUrl: imageUrl,
+      storedRun: null,
+      label: 'Original',
+      createdAt: 0,
+      status: 'completed',
+      source: 'upload',
+    };
+
+    const replacementEntries = uploadedImages
+      .filter((img) => img.replacementFor === imageUrl)
+      .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+      .map((img) => toHistoryEntry(img));
+
+    return [baseEntry, ...replacementEntries];
+  }, [uploadedImages]);
+
+  const getHistoryForNewImage = useCallback((index: number): EditHistoryEntry[] => {
+    const target = uploadedImages[index];
+    if (!target) {
+      return [];
+    }
+    return [toHistoryEntry(target)];
+  }, [uploadedImages]);
+
   // Expose handleCropComplete method to parent
   useImperativeHandle(ref, () => ({
     handleCropComplete: (result: CropCompletionResult, croppingContext: { index: number; type: 'new' | 'existing' }) => {
+      const timestamp = Date.now();
+      const editTypeLabel = result.storedRun ? 'ai edit' : result.source === 'cropped' ? 'manual crop' : 'upload';
       const mimeType = result.storedRun?.mimeType ?? result.blob.type ?? 'image/png';
       const extension = mimeType.split('/')[1] || 'png';
       const fileName = result.storedRun ? `ai-edit.${extension}` : `cropped_image.${extension}`;
@@ -159,13 +234,17 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
             }
             newImages[croppingContext.index] = {
               ...target,
+              id: target.id ?? createUploadedImageId(),
+              createdAt: timestamp,
               file: croppedFile,
               preview: previewUrl,
               previewIsObjectUrl,
               status: 'pending',
               progress: 0,
               storedRun: result.storedRun ?? null,
-              error: undefined
+              error: undefined,
+              source: 'new',
+              editType: editTypeLabel,
             };
           }
           return newImages;
@@ -198,16 +277,22 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
             }
             updated[existingReplacementIndex] = {
               ...updated[existingReplacementIndex],
+              id: updated[existingReplacementIndex].id ?? createUploadedImageId(),
+              createdAt: timestamp,
               file: croppedFile,
               preview: previewUrl,
               previewIsObjectUrl,
               status: 'pending',
               progress: 0,
               storedRun: result.storedRun ?? null,
-              error: undefined
+              error: undefined,
+              source: 'existing',
+              editType: editTypeLabel,
             };
           } else {
             updated.push({
+              id: createUploadedImageId(),
+              createdAt: timestamp,
               file: croppedFile,
               preview: previewUrl,
               previewIsObjectUrl,
@@ -215,6 +300,8 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
               progress: 0,
               replacementFor: originalUrl,
               storedRun: result.storedRun ?? null,
+              source: 'existing',
+              editType: editTypeLabel,
             });
           }
 
@@ -275,12 +362,16 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
 
     // Create preview URLs and add to state with 'pending' status
     const newImages: UploadedImage[] = validFiles.map(file => ({
+      id: createUploadedImageId(),
+      createdAt: Date.now(),
       file,
       preview: URL.createObjectURL(file),
       previewIsObjectUrl: true,
       status: 'pending' as const,
       progress: 0,
-      storedRun: null
+      storedRun: null,
+      source: 'new',
+      editType: 'upload',
     }));
 
     setUploadedImages(prev => [...prev, ...newImages]);
@@ -745,7 +836,13 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                         return (
                           <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
                             console.log('🖼️ Clicking existing image for cropping:', { index, imageUrl, mode });
-                            onCropImage?.(index, displaySrc, 'existing', mode);
+                            onCropImage?.({
+                              index,
+                              src: displaySrc,
+                              type: 'existing',
+                              form: mode,
+                              history: getHistoryForExistingImage(imageUrl, index),
+                            });
                           }}>
                             <img
                               src={displaySrc}
@@ -835,7 +932,13 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ mode 
                     <div key={`new-${index}`} className="relative group">
                       <div className="aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => {
                         console.log('🖼️ Clicking new image for cropping:', { index, preview: image.preview, mode });
-                        onCropImage?.(index, image.preview, 'new', mode);
+                        onCropImage?.({
+                          index,
+                          src: image.preview,
+                          type: 'new',
+                          form: mode,
+                          history: getHistoryForNewImage(index),
+                        });
                       }}>
                         <img
                           src={image.preview}

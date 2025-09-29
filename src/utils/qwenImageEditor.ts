@@ -3,16 +3,48 @@
 
 import { supabase } from './supabase/client';
 
+export type PromptTask = 'background' | 'enhancement' | 'repair' | 'pose';
+
+export interface PromptOptions {
+  editType: string;
+  colorStyle: string;
+  shapeFormat: string;
+  scenario: string;
+  customColor?: string;
+  hasPoseReference: boolean;
+  task: PromptTask;
+  backgroundCategory?: string;
+  backgroundPreset?: string;
+  lightingStyle?: string;
+  paletteStyle?: string;
+  cameraAngle?: string;
+  curatedPrompt?: string;
+  customNotes?: string;
+}
+
 export interface QwenEditRequest {
   image: Blob;
   edit_type: string;
   reference_image?: Blob;
   api_key?: string;
   api_endpoint?: string;
+  promptOptions?: Partial<PromptOptions>;
   options?: {
     color?: string;
     shape?: string;
     scenario?: string;
+    colorStyle?: string;
+    shapeFormat?: string;
+    customColor?: string;
+    hasPoseReference?: boolean;
+    task?: PromptTask;
+    backgroundCategory?: string;
+    backgroundPreset?: string;
+    lightingStyle?: string;
+    paletteStyle?: string;
+    cameraAngle?: string;
+    curatedPrompt?: string;
+    customNotes?: string;
   };
 }
 
@@ -45,6 +77,222 @@ export interface StoredImage {
   url: string;
   timestamp: number;
   metadata?: any;
+}
+
+const BASE_PROMPT = 'Clean the image of any UI elements, text, watermarks, or screenshot artifacts. Identify and remove skin blemishes while preserving natural skin texture. Ensure fabric textures are enhanced, not smoothed over.';
+
+const toSentenceCase = (value: string): string => {
+  const normalised = value.replace(/[-_]+/g, ' ').trim();
+  if (!normalised) return value;
+  return normalised.charAt(0).toUpperCase() + normalised.slice(1);
+};
+
+const normaliseHex = (value?: string): string | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.startsWith('#') ? trimmed.toUpperCase() : `#${trimmed.toUpperCase()}`;
+};
+
+const inferScenarioLabel = (scenario: string): string => {
+  if (!scenario || scenario === 'general') {
+    return 'professional fashion-ready environment';
+  }
+  return `${scenario} setting`;
+};
+
+export function inferPromptTask(editType: string): PromptTask {
+  if (editType === 'apply_pose') {
+    return 'pose';
+  }
+  if (editType.startsWith('repair_')) {
+    return 'repair';
+  }
+  if (editType === 'remove_bg' || editType.startsWith('replace_bg')) {
+    return 'background';
+  }
+  return 'enhancement';
+}
+
+export function buildQwenPrompt(options: PromptOptions): string {
+  const {
+    editType,
+    colorStyle,
+    shapeFormat,
+    scenario,
+    customColor,
+    hasPoseReference,
+    task,
+    backgroundCategory,
+    backgroundPreset,
+    lightingStyle,
+    paletteStyle,
+    cameraAngle,
+    curatedPrompt,
+    customNotes
+  } = options;
+
+  const promptSegments: string[] = [BASE_PROMPT];
+  const colourLabel = toSentenceCase(colorStyle || 'natural');
+  const formattedScenario = inferScenarioLabel(scenario);
+  const solidColour = normaliseHex(customColor);
+  const categoryLabel = backgroundCategory ? toSentenceCase(backgroundCategory) : undefined;
+  const presetLabel = backgroundPreset ? toSentenceCase(backgroundPreset) : undefined;
+  const lightingLabel = lightingStyle ? toSentenceCase(lightingStyle) : undefined;
+  const paletteLabel = paletteStyle ? toSentenceCase(paletteStyle) : undefined;
+  const cameraLabel = cameraAngle ? toSentenceCase(cameraAngle) : undefined;
+
+  const push = (segment?: string) => {
+    if (segment && segment.trim().length > 0) {
+      promptSegments.push(segment.trim());
+    }
+  };
+
+  if (task === 'background') {
+    push('Maintain spotless cut-outs around the product and ensure contact shadows remain believable.');
+
+    if (curatedPrompt) {
+      push(curatedPrompt);
+    } else {
+      if (presetLabel) {
+        push(`Compose a ${presetLabel.toLowerCase()} environment tailored for fashion e-commerce, ensuring the backdrop feels intentional and premium.`);
+      } else if (categoryLabel) {
+        push(`Place the subject within a ${categoryLabel.toLowerCase()} inspired setting that feels editorial yet commercially viable.`);
+      }
+    }
+
+    if (editType === 'remove_bg' || editType === 'replace_bg_transparent') {
+      push('Isolate the main subject with a perfectly transparent background. Output the result as a PNG with clean alpha and no fringe pixels.');
+    }
+
+    if (editType === 'replace_bg_white' || (editType === 'replace_bg_solid' && solidColour === '#FFFFFF')) {
+      push('Place the subject on a clean, solid background of #FFFFFF. Ensure soft, realistic contact shadows and avoid any banding or gradients.');
+    } else if (editType === 'replace_bg_black') {
+      push('Place the subject on a clean, solid background of #000000 with refined contact shadows and controlled specular highlights.');
+    } else if (editType === 'replace_bg_solid' && solidColour) {
+      push(`Place the subject on a clean, solid background of ${solidColour}. Keep lighting cohesive and introduce natural contact shadows that ground the subject.`);
+    }
+
+    if (editType === 'replace_bg_gradient') {
+      push('Design a refined gradient background that complements the garment. Keep the gradient smooth, avoid visible banding, and retain focus on the model.');
+    }
+
+    if (editType === 'replace_bg_custom') {
+      push('Use the provided reference image to match background style, palette, and lighting. Align the subject with the perspective of the reference environment.');
+    }
+
+    if (editType === 'replace_bg_nature' || editType === 'replace_bg_studio') {
+      push(`Integrate the subject into a high-resolution, professional ${formattedScenario}. Match lighting direction, color temperature, perspective, and depth of field between subject and environment.`);
+    } else if (scenario && scenario !== 'general' && !editType.startsWith('replace_bg_')) {
+      push(`Match the backdrop to a ${formattedScenario} with coherent lighting and tonality.`);
+    }
+
+    if (lightingLabel) {
+      push(`${lightingLabel} lighting is preferred—match highlights and shadows so they flatter skin and fabric.`);
+    }
+
+    if (paletteLabel) {
+      push(`Color palette direction: lean into ${paletteLabel.toLowerCase()} tones that harmonise with the outfit.`);
+    }
+
+    if (cameraLabel) {
+      push(`Respect an overall ${cameraLabel.toLowerCase()} camera feeling so the perspective matches the chosen scenario.`);
+    }
+
+    if (customNotes) {
+      push(customNotes);
+    }
+  }
+
+  if (task === 'enhancement') {
+    push('Apply editorial-grade retouching tuned for fashion e-commerce while preserving authentic garment color and drape.');
+
+    switch (editType) {
+      case 'enhance_quality':
+        push('Increase clarity, recover micro-texture in fabrics, and remove digital noise without introducing halo artifacts.');
+        break;
+      case 'enhance_colors':
+        push(`Apply a professional color grade with a ${colourLabel} palette. Boost garment vibrancy while keeping skin tones natural and flattering.`);
+        break;
+      case 'enhance_sharpness':
+        push('Sharpen edges and fabric details aggressively yet cleanly. Avoid halos or over-sharpening skin.');
+        break;
+      case 'enhance_hdr':
+        push('Expand the dynamic range with balanced local contrast so details remain in highlights and shadows. Maintain a polished, commercial finish.');
+        break;
+      case 'effect_vintage':
+        push('Apply a subtle vintage film treatment with tasteful grain and warm mid-tones while retaining clarity in the garment.');
+        break;
+      case 'effect_bw':
+        push('Convert to monochrome with deep blacks, clean whites, and nuanced midtones. Emphasize fabric structure using selective contrast.');
+        break;
+      case 'effect_sepia':
+        push('Create a warm sepia interpretation with rich tonal depth and preserved garment definition.');
+        break;
+      case 'effect_cartoon':
+        push('Stylize the image with bold outlines and smooth gradients while keeping the subject recognisable and on-brand.');
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (task === 'repair') {
+    push('Use intelligent in-painting and out-painting to correct structural issues without distorting garment proportions.');
+
+    if (editType === 'repair_limbs') {
+      push('Analyze the subject for incomplete or cropped body parts (hands, feet, head). Reconstruct the missing areas so anatomy, pose, and lighting feel natural and consistent with the original capture.');
+    }
+  }
+
+  if (task === 'pose' || hasPoseReference) {
+    push('Analyze the provided reference image and transfer its pose to the main subject. Preserve the subject’s identity, face, hairstyle, and wardrobe details while adapting the body position seamlessly.');
+    push('Blend the new pose naturally with the original lighting and camera angle so the result looks like a single capture.');
+  }
+
+  switch (editType) {
+    case 'transform_square':
+      push('Recompose the frame into a perfect square, centering the model and keeping breathing room around the garment.');
+      break;
+    case 'transform_portrait':
+      push('Reframe into a tall portrait crop ideal for lookbook imagery. Maintain the model’s full silhouette and balanced headroom.');
+      break;
+    case 'transform_landscape':
+      push('Reframe into a widescreen landscape crop, ensuring the model remains the focal point with ample negative space for copy if needed.');
+      break;
+    case 'transform_circle':
+      push('Deliver a centered circular crop with either transparent edges or a neutral halo, keeping the subject crisp and unobstructed.');
+      break;
+    default:
+      break;
+  }
+
+  if (shapeFormat && shapeFormat !== 'original' && !editType.startsWith('transform_')) {
+    switch (shapeFormat) {
+      case 'square':
+        push('Ensure the final framing works within a square composition with balanced margins.');
+        break;
+      case 'portrait':
+        push('Optimize the crop for a vertical portrait layout with the subject flowing from head to toe.');
+        break;
+      case 'landscape':
+        push('Structure the composition to read well in a horizontal landscape frame with space for merchandising overlays.');
+        break;
+      case 'circle':
+        push('Prepare the subject to sit comfortably within a circular frame, maintaining centered alignment and clean edges.');
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (task !== 'background' && scenario && scenario !== 'general') {
+    push(`Ensure the atmosphere subtly reflects a ${formattedScenario} without distracting from the clothing.`);
+  }
+
+  push('Deliver a high-resolution, e-commerce-ready fashion image with balanced lighting, crisp edges, and immaculate garment detail suitable for Rosémama’s catalog.');
+
+  return promptSegments.join(' ');
 }
 
 export class QwenImageEditor {
@@ -194,70 +442,41 @@ export class QwenImageEditor {
     });
   }
 
-  private getPromptForEditType(editType: string, options?: { color?: string; shape?: string; scenario?: string }): string {
-    const { color = 'natural', shape = 'original', scenario = 'general' } = options || {};
+  private resolvePromptOptions(request: QwenEditRequest): PromptOptions {
+    const explicit = request.promptOptions ?? {};
+    const legacy = request.options ?? {};
 
-switch (editType) {
-      case 'remove_bg':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Isolate only the main subject with a completely transparent background. Apply HDR enhancement: improve dynamic range, recover shadow/highlight details, and boost clarity. Output must be a PNG with pure transparency and no background remnants.';
+    const task = explicit.task ?? legacy.task ?? inferPromptTask(request.edit_type);
+    const colorStyle = explicit.colorStyle ?? legacy.colorStyle ?? legacy.color ?? 'natural';
+    const shapeFormat = explicit.shapeFormat ?? legacy.shapeFormat ?? legacy.shape ?? 'original';
+    const scenario = explicit.scenario ?? legacy.scenario ?? 'general';
+    const customColorValue = explicit.customColor ?? legacy.customColor;
+    const customColor = normaliseHex(customColorValue);
+    const hasPoseReference = explicit.hasPoseReference ?? legacy.hasPoseReference ?? (task === 'pose' && !!request.reference_image);
+    const backgroundCategory = explicit.backgroundCategory ?? legacy.backgroundCategory;
+    const backgroundPreset = explicit.backgroundPreset ?? legacy.backgroundPreset;
+    const lightingStyle = explicit.lightingStyle ?? legacy.lightingStyle;
+    const paletteStyle = explicit.paletteStyle ?? legacy.paletteStyle;
+    const cameraAngle = explicit.cameraAngle ?? legacy.cameraAngle;
+    const curatedPrompt = explicit.curatedPrompt ?? legacy.curatedPrompt;
+    const customNotes = explicit.customNotes ?? legacy.customNotes;
 
-      case 'replace_bg_white':
-        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Extract the main subject and place it on a pure white background (#FFFFFF)—no textures, gradients, or noise. Apply HDR enhancement: improve contrast, recover details, and ensure professional color fidelity. Maintain original lighting and proportions.`;
-
-      case 'replace_bg_black':
-        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Extract the main subject and place it on a pure black background (#000000)—no textures, gradients, or noise. Apply HDR enhancement: enhance tonal range, sharpen details, and preserve natural lighting. Keep subject colors accurate and vivid.`;
-
-      case 'replace_bg_transparent':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Isolate only the main subject with a completely transparent background. Apply HDR enhancement: improve dynamic range, recover shadow/highlight details, and boost clarity. Output must be a PNG with pure transparency and no background remnants.';
-
-      case 'replace_bg_gradient':
-        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Place the main subject on a smooth, professional gradient background using complementary colors that enhance the subject. Apply HDR enhancement: enrich contrast, recover details in all tonal ranges, and ensure the subject remains crisp and naturally lit.`;
-
-      case 'replace_bg_nature':
-        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Seamlessly integrate the main subject into a realistic, high-fidelity natural outdoor environment (${scenario}) that complements its form, color, and context. Apply professional HDR enhancement: balance lighting between subject and background, recover ambient details in foliage/sky/terrain, and ensure cohesive depth, atmosphere, and natural shadow integration. The result should look like a professionally photographed scene—not a composite.`;
-
-      case 'replace_bg_studio':
-        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Place the main subject in a professional photography studio setting with soft, directional lighting and a seamless backdrop. Apply HDR enhancement: maximize detail, ensure perfect exposure, and produce a high-end commercial product photo with rich tonal depth.`;
-
-      case 'enhance_quality':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply comprehensive HDR enhancement: significantly improve sharpness, dynamic range, color balance, contrast, and micro-detail recovery. Produce a polished, professional-grade image while preserving original composition and intent.';
-
-      case 'enhance_colors':
-        return `Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Enhance colors with increased saturation, improved contrast, and refined tonal harmony in a (${color} style). Apply HDR processing to recover highlight/shadow details and ensure vibrant yet natural-looking results. Maintain original composition.`;
-
-      case 'enhance_sharpness':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply aggressive yet natural-looking sharpening with HDR detail recovery: enhance edges, reduce blur, amplify texture clarity, and restore fine details without introducing halos or noise.';
-
-      case 'enhance_hdr':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply advanced HDR processing: dramatically expand dynamic range, reveal hidden details in shadows and highlights, balance local contrast, and produce a rich, cinematic, professional-quality image with depth and realism.';
-
-      case 'effect_vintage':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply a vintage film effect with subtle color shifts, authentic film grain, and soft contrast—but first apply HDR enhancement to preserve detail and clarity beneath the nostalgic aesthetic.';
-
-      case 'effect_bw':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Convert to professional black and white with HDR tonal range: rich blacks, clean whites, nuanced midtones, and enhanced texture detail. Apply artistic contrast for a timeless monochrome photograph.';
-
-      case 'effect_sepia':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Apply a warm sepia tone with HDR-enhanced detail: preserve texture and depth in shadows/highlights while giving a nostalgic, historical photograph appearance with balanced warmth and clarity.';
-
-      case 'effect_cartoon':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Transform into a stylized cartoon: simplify shapes, bold outlines, vibrant HDR-enhanced colors, and smooth gradients—while retaining recognizable subject features and expressive clarity.';
-
-      case 'transform_square':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Recompose the main subject into a perfect square format with balanced framing. Apply HDR enhancement to ensure detail, contrast, and color quality remain high after cropping or repositioning.';
-
-      case 'transform_portrait':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Recompose into a vertical portrait orientation with professional framing. Apply HDR enhancement to maintain detail, lighting consistency, and visual impact in the new aspect ratio.';
-
-      case 'transform_landscape':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Recompose into a horizontal landscape orientation with balanced composition. Apply HDR enhancement to preserve dynamic range, sharpness, and color fidelity across the wider frame.';
-
-      case 'transform_circle':
-        return 'Clean the image by removing any UI elements, text, or artifacts (common in screenshots). Crop the main subject into a perfect circle with centered, balanced framing. Apply HDR enhancement to retain detail and contrast within the circular bounds. Output should have a transparent or neutral background as appropriate.';
-
-      default:
-        return 'Edit this image appropriately and return the result.';
-    }
+    return {
+      editType: explicit.editType ?? request.edit_type,
+      colorStyle,
+      shapeFormat,
+      scenario,
+      customColor,
+      hasPoseReference,
+      task,
+      backgroundCategory,
+      backgroundPreset,
+      lightingStyle,
+      paletteStyle,
+      cameraAngle,
+      curatedPrompt,
+      customNotes
+    };
   }
 
   private async urlToBlob(url: string): Promise<Blob> {
@@ -295,8 +514,10 @@ switch (editType) {
       const imageBase64 = await this.blobToBase64(request.image);
       const imageDataUrl = imageBase64.split(',')[1]; // Remove data URL prefix
 
-      // Get the prompt
-      const prompt = this.getPromptForEditType(request.edit_type, request.options);
+  // Get the prompt
+  const promptOptions = this.resolvePromptOptions(request);
+  const prompt = buildQwenPrompt(promptOptions);
+  console.debug('🧠 Generated Qwen prompt options:', promptOptions);
 
       // Add reference image if provided
       let referenceImageBase64 = null;
@@ -338,7 +559,8 @@ switch (editType) {
               success: true,
               edited_image: data.imageBlob,
               imageUrl: supabaseUrl,
-              imageId: imageId
+              imageId: imageId,
+              storedRun: data.storedRun ?? undefined
             });
           } catch (saveError) {
             console.error('⚠️ Image processing via service worker succeeded but saving failed:', saveError);
@@ -371,8 +593,9 @@ switch (editType) {
         const { data: supabaseData, error: supabaseError } = await supabase.functions.invoke('qwen-proxy', {
           body: {
             imageBase64: imageDataUrl,
-            prompt: prompt,
+            prompt,
             editType: request.edit_type,
+            promptOptions,
             ...(referenceImageBase64 && { referenceImageBase64 })
           }
         });
