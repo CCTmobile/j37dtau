@@ -37,7 +37,7 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
     country: 'South Africa'
   });
 
-  const [paymentMethod, setPaymentMethod] = useState('cash-on-delivery');
+  const [paymentMethod, setPaymentMethod] = useState('bank-transfer');
   const [paymentForm, setPaymentForm] = useState({
     cardNumber: '',
     expiryDate: '',
@@ -57,8 +57,7 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
   const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const pointsDiscount = usePointsDiscount && user ? Math.min(user.points * 0.01, subtotal * 0.2) : 0; // 1 cent per point, max 20% off
   const shipping = subtotal > 100 ? 0 : 9.99;
-  const tax = (subtotal - pointsDiscount) * 0.08;
-  const total = subtotal - pointsDiscount + shipping + tax;
+  const total = subtotal - pointsDiscount + shipping;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -525,11 +524,6 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                         `R${shipping.toFixed(2)}`
                       )}
                     </span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span>Tax</span>
-                    <span>R{tax.toFixed(2)}</span>
                   </div>
                 </div>
 
