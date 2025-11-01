@@ -367,7 +367,8 @@ function AppContent() {
   };
 
   const handleProceedToCheckout = () => {
-    requireAuth(() => setCurrentPage('checkout'), 'Checkout', 'Please sign in to proceed with your order.');
+    // Allow guest checkout - no authentication required
+    setCurrentPage('checkout');
   };
 
   const handleProfileClick = () => {

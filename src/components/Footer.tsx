@@ -153,7 +153,7 @@ export function Footer({ onInfoClick }: FooterProps) {
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Phone className="h-4 w-4" />
-                +27 735 514 705
+                +27 73 551 4705
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <MapPin className="h-4 w-4" />

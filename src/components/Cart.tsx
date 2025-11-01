@@ -21,20 +21,17 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(null);
 
-  // Calculate order totals with proper South African pricing
-  const productsTotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0); // VAT-inclusive total
+  // Calculate order totals - prices already include VAT
+  const productsTotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const discount = appliedDiscount?.amount || 0;
-  
-  // Calculate VAT (15%) - extract VAT from VAT-inclusive price
-  const vatAmount = (productsTotal * 15) / 115; // Extract 15% VAT from total
-  const subtotal = productsTotal - vatAmount; // VAT-exclusive amount
+  const subtotal = productsTotal - discount; // Subtotal after discount
   
   // Shipping calculation: FREE for orders ≥ R3500 subtotal, R110 otherwise
   const shippingCost = subtotal >= 3500 ? 0 : 110;
   const shipping = shippingCost;
   
-  // Final total: products total (VAT-inclusive) + shipping
-  const total = productsTotal - discount + shipping;
+  // Final total: subtotal + shipping
+  const total = subtotal + shipping;
 
   const applyDiscount = () => {
     const discountCodes = {
@@ -203,11 +200,6 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
                       `R${shipping.toFixed(2)}`
                     )}
                   </span>
-                </div>
-
-                <div className="flex justify-between text-sm">
-                  <span>Tax (15% VAT)</span>
-                  <span>R{vatAmount.toFixed(2)}</span>
                 </div>
               </div>
 

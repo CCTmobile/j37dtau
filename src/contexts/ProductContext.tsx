@@ -16,6 +16,26 @@ type ProductContextType = {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
+// BANDWIDTH OPTIMIZATION: Cache image URLs to prevent regenerating on every render
+const imageUrlCache = new Map<string, string>();
+
+// Helper function to get or generate Supabase Storage URL with caching
+const getCachedImageUrl = (imagePath: string): string => {
+  // Return cached URL if available
+  if (imageUrlCache.has(imagePath)) {
+    return imageUrlCache.get(imagePath)!;
+  }
+
+  // Generate new URL and cache it
+  const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+  const publicUrl = supabase.storage
+    .from('product-images')
+    .getPublicUrl(cleanPath).data.publicUrl;
+  
+  imageUrlCache.set(imagePath, publicUrl);
+  return publicUrl;
+};
+
 export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +61,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
               if (imgPath.startsWith('http')) {
                 return imgPath;
               }
-              // Otherwise, construct Supabase storage URL
-              const cleanPath = imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
-              return supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+              // Use cached URL helper to prevent redundant URL generation
+              return getCachedImageUrl(imgPath);
             });
         }
         // Fallback to old image_url format
@@ -54,11 +73,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           if (imgPath.startsWith('http')) {
             images = [imgPath];
           } else {
-            // Use Supabase storage helper to get public URL
-            const cleanPath = imgPath.startsWith('/images/') ? imgPath.substring(8) : 
-                             imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
-            const publicUrl = supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
-            images = [publicUrl];
+            // Use cached URL helper to prevent redundant URL generation
+            images = [getCachedImageUrl(imgPath)];
           }
         }
         // Use placeholder if no images
@@ -112,9 +128,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
               if (imgPath.startsWith('http')) {
                 return imgPath;
               }
-              // Otherwise, construct Supabase storage URL
-              const cleanPath = imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
-              return supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+              // Use cached URL helper to prevent redundant URL generation
+              return getCachedImageUrl(imgPath);
             });
         }
         // Fallback to old image_url format
@@ -125,11 +140,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           if (imgPath.startsWith('http')) {
             images = [imgPath];
           } else {
-            // Use Supabase storage helper to get public URL
-            const cleanPath = imgPath.startsWith('/images/') ? imgPath.substring(8) : 
-                             imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
-            const publicUrl = supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
-            images = [publicUrl];
+            // Use cached URL helper to prevent redundant URL generation
+            images = [getCachedImageUrl(imgPath)];
           }
         }
         // Use placeholder if no images
@@ -182,9 +194,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
             if (imgPath.startsWith('http')) {
               return imgPath;
             }
-            // Otherwise, construct Supabase storage URL
-            const cleanPath = imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
-            return supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
+            // Use cached URL helper to prevent redundant URL generation
+            return getCachedImageUrl(imgPath);
           });
       }
       // Fallback to old image_url format
@@ -195,11 +206,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         if (imgPath.startsWith('http')) {
           images = [imgPath];
         } else {
-          // Use Supabase storage helper to get public URL
-          const cleanPath = imgPath.startsWith('/images/') ? imgPath.substring(8) : 
-                           imgPath.startsWith('/') ? imgPath.substring(1) : imgPath;
-          const publicUrl = supabase.storage.from('product-images').getPublicUrl(cleanPath).data.publicUrl;
-          images = [publicUrl];
+          // Use cached URL helper to prevent redundant URL generation
+          images = [getCachedImageUrl(imgPath)];
         }
       }
       // Use placeholder if no images

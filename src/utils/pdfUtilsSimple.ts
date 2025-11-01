@@ -50,7 +50,7 @@ export const generateInvoicePDFSimple = async (order: Order): Promise<void> => {
     pdf.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
     pdf.setFontSize(9);
     pdf.text('📍 New Rd, Carlswald, Midrand, 1684', 20, yPosition);
-    pdf.text('📞 +27 63 470 8046', 20, yPosition + 5);
+    pdf.text('📞 +27 73 551 4705', 20, yPosition + 5);
     pdf.text('✉️ info@rosemama.store', 20, yPosition + 10);
 
     yPosition += 25;
@@ -248,7 +248,7 @@ export const generateInvoicePDFSimple = async (order: Order): Promise<void> => {
     pdf.setFont('helvetica', 'normal');
     pdf.text('Thank you for shopping with Rosémama! We appreciate your business.', 20, yPosition);
     pdf.setFontSize(8);
-    pdf.text('For any inquiries, please contact us at info@rosemama.store or call +27 63 470 8046', 20, yPosition + 6);
+    pdf.text('For any inquiries, please contact us at info@rosemama.store or call +27 73 551 4705', 20, yPosition + 6);
 
     // Download the PDF
     const invoiceNumber = `INV-${order.order_id.slice(-8).toUpperCase()}`;
@@ -336,7 +336,7 @@ export const printInvoice = async (order: Order): Promise<void> => {
               </div>
               <div style="display: flex; align-items: center; color: rgba(244, 63, 94, 1);">
                 <span style="margin-right: 6px; font-weight: bold;">Tel:</span>
-                <span>+27 63 470 8046</span>
+                <span>+27 73 551 4705</span>
               </div>
               <div style="display: flex; align-items: center; color: rgba(255, 255, 255, 0.8);">
                 <span style="margin-right: 6px; font-weight: bold;">@</span>
@@ -444,7 +444,7 @@ export const printInvoice = async (order: Order): Promise<void> => {
             Thank you for shopping with Rosemama! We appreciate your business.
           </p>
           <p style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">
-            For any inquiries, please contact us at info@rosemama.store or call +27 63 470 8046
+            For any inquiries, please contact us at info@rosemama.store or call +27 73 551 4705
           </p>
         </div>
       </div>
@@ -546,7 +546,7 @@ export const viewInvoiceInModal = async (order: Order): Promise<void> => {
           </div>
           <div style="display: flex; align-items: center; color: rgba(244, 63, 94, 1); font-size: 14px;">
             <span style="margin-right: 8px; font-weight: bold;">Tel:</span>
-            <span>+27 63 470 8046</span>
+            <span>+27 73 551 4705</span>
           </div>
           <div style="display: flex; align-items: center; color: rgba(255, 255, 255, 0.8); font-size: 14px;">
             <span style="margin-right: 8px; font-weight: bold;">@</span>
@@ -652,7 +652,7 @@ export const viewInvoiceInModal = async (order: Order): Promise<void> => {
           Thank you for shopping with Rosemama! We appreciate your business.
         </p>
         <p style="font-size: 14px; color: rgba(255, 255, 255, 0.6);">
-          For any inquiries, please contact us at info@rosemama.store or call +27 63 470 8046
+          For any inquiries, please contact us at info@rosemama.store or call +27 73 551 4705
         </p>
       </div>
     </div>

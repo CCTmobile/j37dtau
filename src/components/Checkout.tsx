@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
 import { Checkbox } from './ui/checkbox';
-import { ArrowLeft, CreditCard, Gift } from 'lucide-react';
+import { ArrowLeft, CreditCard } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
 import { createOrderFromCart, createGuestOrder } from '../utils/supabase/client';
@@ -369,13 +369,6 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
               </CardHeader>
               <CardContent className="space-y-4">
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                    <RadioGroupItem value="cash-on-delivery" id="cash-on-delivery" />
-                    <Label htmlFor="cash-on-delivery" className="flex items-center gap-2 flex-1 cursor-pointer">
-                      <Gift className="h-4 w-4" />
-                      Cash on Delivery
-                    </Label>
-                  </div>
                   <div className="flex items-center space-x-2 p-3 border rounded-lg">
                     <RadioGroupItem value="bank-transfer" id="bank-transfer" />
                     <Label htmlFor="bank-transfer" className="flex items-center gap-2 flex-1 cursor-pointer">

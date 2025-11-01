@@ -548,7 +548,7 @@ function generateInvoiceHTML(order: OrderData): string {
               <svg class="contact-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
               </svg>
-              <span class="contact-text">+27 63 470 8046</span>
+              <span class="contact-text">+27 73 551 4705</span>
             </div>
             <div class="contact-item">
               <svg class="contact-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -671,15 +671,7 @@ function generateInvoiceHTML(order: OrderData): string {
               <h4 style="font-size: 16px; font-weight: 600; margin: 0;">Payment Method</h4>
             </div>
             <div style="padding: 20px;">
-              ${order.payment_method === 'cash-on-delivery' ? `
-                <div style="text-align: center;">
-                  <svg class="payment-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2-2z"/>
-                  </svg>
-                  <div class="payment-method-name">Cash on Delivery</div>
-                  <div class="payment-method-desc">Pay when you receive your order</div>
-                </div>
-              ` : order.payment_method === 'bank-transfer' ? `
+              ${order.payment_method === 'bank-transfer' ? `
                 <div style="text-align: center;">
                   <svg class="payment-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
@@ -739,7 +731,7 @@ function generateInvoiceHTML(order: OrderData): string {
               We hope you love your new Rosemama fashion pieces! Your support helps us bring you the best in premium fashion.
             </p>
             <p class="footer-contact">
-              Questions? Contact us at <span class="contact-link">info@rosemama.store</span> or call <span class="contact-link">+27 63 470 8046</span>
+              Questions? Contact us at <span class="contact-link">info@rosemama.store</span> or call <span class="contact-link">+27 73 551 4705</span>
             </p>
             <p class="footer-timestamp">
               Invoice generated on ${new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString()}

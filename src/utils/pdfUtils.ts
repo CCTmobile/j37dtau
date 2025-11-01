@@ -209,7 +209,7 @@ export const generateInvoiceHTML = async (order: OrderData): Promise<string> => 
         <h1 style="font-size: 36px; font-weight: bold; margin-bottom: 10px;">Rosemama</h1>
         <p style="font-size: 18px; color: #666;">CLOTHING STORE</p>
         <p style="font-size: 14px; color: #666;">
-          New Rd, Carlswald, Midrand, 1684 | info@rosemama.store | +27 63 470 8046
+          New Rd, Carlswald, Midrand, 1684 | info@rosemama.store | +27 73 551 4705
         </p>
         <div style="border-top: 2px solid #3b82f6; margin-top: 20px;"></div>
       </div>
@@ -303,7 +303,7 @@ export const generateInvoiceHTML = async (order: OrderData): Promise<string> => 
           Thank you for shopping with Rosemama! We appreciate your business.
         </p>
         <p style="font-size: 12px; color: #666;">
-          For any inquiries, please contact us at info@rosemama.store or call +27 63 470 8046
+          For any inquiries, please contact us at info@rosemama.store or call +27 73 551 4705
         </p>
       </div>
     </div>

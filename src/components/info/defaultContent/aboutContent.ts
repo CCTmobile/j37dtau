@@ -145,7 +145,7 @@ export const defaultAboutContent: ContentSection[] = [
           </div>
           <div>
             <h5 class="font-semibold mb-1">Call Us</h5>
-            <p class="text-gray-600 text-sm">+27 735 514 705</p>
+            <p class="text-gray-600 text-sm">+27 73 551 4705</p>
           </div>
         </div>
         

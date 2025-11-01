@@ -11,7 +11,7 @@ export const defaultPrivacyContent: ContentSection[] = [
       Rosémama Clothing<br>
       New Road, Midrand, South Africa<br>
       Email: hello@rosemamaclothing.store<br>
-      Phone: +27 735 514 705</p>
+      Phone: +27 73 551 4705</p>
       
       <p>This policy explains how we collect, use, store, and protect your personal information when you visit our website or use our services. <em>Last updated: September 12, 2025</em></p>
     `
@@ -113,7 +113,7 @@ export const defaultPrivacyContent: ContentSection[] = [
         <li><strong>Withdraw Consent:</strong> Withdraw consent for processing</li>
       </ul>
       
-      <p>To exercise these rights, contact us at <strong>hello@rosemamaclothing.store</strong> or <strong>+27 735 514 705</strong>.</p>
+      <p>To exercise these rights, contact us at <strong>hello@rosemamaclothing.store</strong> or <strong>+27 73 551 4705</strong>.</p>
       
       <p>We will respond to your request within 30 days. If you're not satisfied with our response, you can lodge a complaint with the Information Regulator of South Africa.</p>
     `
@@ -183,7 +183,7 @@ export const defaultPrivacyContent: ContentSection[] = [
         <div class="grid md:grid-cols-2 gap-4">
           <div>
             <p><strong>Email:</strong> hello@rosemamaclothing.store</p>
-            <p><strong>Phone:</strong> +27 735 514 705</p>
+            <p><strong>Phone:</strong> +27 73 551 4705</p>
           </div>
           <div>
             <p><strong>Address:</strong><br>
@@ -214,7 +214,7 @@ export const defaultTermsContent: ContentSection[] = [
       Rosémama Clothing<br>
       New Road, Midrand, South Africa<br>
       Email: hello@rosemamaclothing.store<br>
-      Phone: +27 735 514 705</p>
+      Phone: +27 73 551 4705</p>
     `
   },
   {
@@ -375,7 +375,7 @@ export const defaultContactContent: ContentSection[] = [
           <h4 class="font-semibold">Customer Service</h4>
           <div class="space-y-2">
             <p><strong>Email:</strong> hello@rosemamaclothing.store</p>
-            <p><strong>Phone:</strong> +27 735 514 705</p>
+            <p><strong>Phone:</strong> +27 73 551 4705</p>
             <p><strong>Hours:</strong> Monday - Friday, 9AM - 5PM (SAST)</p>
           </div>
         </div>

@@ -225,7 +225,7 @@ INSERT INTO content_pages (page_type, page_data, created_by, updated_by) VALUES
             {
                 "id": "popia-compliance",
                 "title": "POPIA Compliance",
-                "content": "<p>Rosémama Clothing is committed to protecting your privacy and personal information in accordance with the Protection of Personal Information Act (POPIA), Act 4 of 2013.</p><p><strong>Responsible Party:</strong><br>Rosémama Clothing<br>New Road, Midrand, South Africa<br>Email: hello@rosemamaclothing.store<br>Phone: +27 735 514 705</p>"
+                "content": "<p>Rosémama Clothing is committed to protecting your privacy and personal information in accordance with the Protection of Personal Information Act (POPIA), Act 4 of 2013.</p><p><strong>Responsible Party:</strong><br>Rosémama Clothing<br>New Road, Midrand, South Africa<br>Email: hello@rosemamaclothing.store<br>Phone: +27 73 551 4705</p>"
             },
             {
                 "id": "information-collection",
