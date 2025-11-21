@@ -353,7 +353,7 @@ INSERT INTO chat_templates (admin_id, title, content, category, is_shared) VALUE
 (
   (SELECT id FROM users WHERE role = 'admin' LIMIT 1),
   'Return Policy',
-  'We offer returns within 30 days of purchase. Items must be unworn and in original condition. Would you like me to start a return for you?',
+  'We offer returns within 72 hrs of purchase. Items must be unworn and in original condition. Would you like me to start a return for you?',
   'returns',
   TRUE
 ),

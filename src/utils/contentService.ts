@@ -67,7 +67,7 @@ export class ContentService {
         .select('page_data')
         .eq('page_type', pageType)
         .eq('is_active', true)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid error when no rows
+        .maybeSingle();
 
       if (error) {
         console.warn(`Database error fetching content for ${pageType}:`, error);
@@ -81,7 +81,7 @@ export class ContentService {
         return this.getFallbackContent(pageType);
       }
 
-      return data.page_data as PageContent;
+      return data.page_data as unknown as PageContent;
     } catch (error) {
       console.error(`Unexpected error fetching content for ${pageType}:`, error);
       return this.getFallbackContent(pageType);
@@ -104,7 +104,10 @@ export class ContentService {
         return [];
       }
 
-      return data || [];
+      return (data || []).map((page: any) => ({
+        ...page,
+        page_data: page.page_data as unknown as PageContent
+      }));
     } catch (error) {
       console.error('Unexpected error fetching all content:', error);
       return [];
@@ -187,7 +190,7 @@ export class ContentService {
           {
             id: "return-policy",
             title: "Return Policy",
-            content: "<p>We accept returns within 30 days of purchase. Items must be in original condition with tags attached.</p>"
+            content: "<p>We accept returns within 72 hrs of purchase. Items must be in original condition with tags attached.</p>"
           }
         ]
       },
@@ -236,6 +239,11 @@ export class ContentService {
         return null;
       }
 
+      const formattedCurrentData = currentData ? {
+        ...currentData,
+        page_data: currentData.page_data as unknown as PageContent
+      } : null;
+
       // Get version history
       const { data: historyData, error: historyError } = currentData ? await (supabase as any)
         .from('content_versions')
@@ -245,12 +253,17 @@ export class ContentService {
 
       if (historyError) {
         console.error(`Error fetching version history for ${pageType}:`, historyError);
-        return { current: currentData || null, history: [] };
+        return { current: formattedCurrentData, history: [] };
       }
 
+      const formattedHistory = (historyData || []).map((version: any) => ({
+        ...version,
+        page_data: version.page_data as unknown as PageContent
+      }));
+
       return {
-        current: currentData || null,
-        history: historyData || []
+        current: formattedCurrentData,
+        history: formattedHistory
       };
     } catch (error) {
       console.error(`Unexpected error fetching content history for ${pageType}:`, error);
@@ -262,13 +275,13 @@ export class ContentService {
    * Save new content page
    */
   static async savePageContent(
-    pageType: PageType, 
-    pageData: PageContent, 
+    pageType: PageType,
+    pageData: PageContent,
     changeSummary?: string
   ): Promise<{ success: boolean; data?: ContentPage; error?: string }> {
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
+
       if (!userData.user) {
         return { success: false, error: 'User not authenticated' };
       }
@@ -289,7 +302,13 @@ export class ContentService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data };
+      return {
+        success: true,
+        data: {
+          ...data,
+          page_data: data.page_data as unknown as PageContent
+        }
+      };
     } catch (error) {
       console.error(`Unexpected error saving content for ${pageType}:`, error);
       return { success: false, error: 'Unexpected error occurred' };
@@ -300,13 +319,13 @@ export class ContentService {
    * Update existing content page or create if it doesn't exist
    */
   static async updatePageContent(
-    pageType: PageType, 
-    pageData: PageContent, 
+    pageType: PageType,
+    pageData: PageContent,
     changeSummary?: string
   ): Promise<{ success: boolean; data?: ContentPage; error?: string }> {
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
+
       if (!userData.user) {
         return { success: false, error: 'User not authenticated' };
       }
@@ -317,7 +336,7 @@ export class ContentService {
         .select('id')
         .eq('page_type', pageType)
         .eq('is_active', true)
-        .maybeSingle(); // Use maybeSingle to avoid error when no rows found
+        .maybeSingle();
 
       // If page doesn't exist, create it
       if (!currentContent) {
@@ -340,7 +359,13 @@ export class ContentService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, data };
+      return {
+        success: true,
+        data: {
+          ...data,
+          page_data: data.page_data as unknown as PageContent
+        }
+      };
     } catch (error) {
       console.error(`Unexpected error updating content for ${pageType}:`, error);
       return { success: false, error: 'Unexpected error occurred' };
@@ -353,14 +378,14 @@ export class ContentService {
   static async deletePageContent(pageType: PageType): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
+
       if (!userData.user) {
         return { success: false, error: 'User not authenticated' };
       }
 
       const { error } = await (supabase as any)
         .from('content_pages')
-        .update({ 
+        .update({
           is_active: false,
           updated_by: userData.user.id
         })
@@ -383,12 +408,12 @@ export class ContentService {
    * Revert to a specific version
    */
   static async revertToVersion(
-    pageType: PageType, 
+    pageType: PageType,
     versionNumber: number
   ): Promise<{ success: boolean; data?: ContentPage; error?: string }> {
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
+
       if (!userData.user) {
         return { success: false, error: 'User not authenticated' };
       }
@@ -407,8 +432,8 @@ export class ContentService {
 
       // Update current content with the version data
       return await this.updatePageContent(
-        pageType, 
-        versionData.page_data, 
+        pageType,
+        versionData.page_data as unknown as PageContent,
         `Reverted to version ${versionNumber}`
       );
     } catch (error) {
@@ -489,7 +514,10 @@ export class ContentService {
         return [];
       }
 
-      return data || [];
+      return (data || []).map((page: any) => ({
+        ...page,
+        page_data: page.page_data as unknown as PageContent
+      }));
     } catch (error) {
       console.error('Unexpected error searching content:', error);
       return [];
@@ -502,7 +530,7 @@ export class ContentService {
   static async checkAdminAccess(): Promise<boolean> {
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
+
       if (!userData.user) {
         return false;
       }
@@ -541,7 +569,7 @@ export class ContentService {
 
       return {
         tableExists: true,
-        hasData: data && data.length > 0,
+        hasData: !!data && data.length > 0,
         error: undefined
       };
     } catch (error) {

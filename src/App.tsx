@@ -166,8 +166,8 @@ function ProductCatalog({
             </Button>
           </div>
 
-          <select 
-            value={sortBy} 
+          <select
+            value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="px-3 py-2 border rounded-md bg-background"
           >
@@ -185,22 +185,20 @@ function ProductCatalog({
         </div>
       </div>
 
-      <div className={viewMode === 'grid' 
-        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24" 
+      <div className={viewMode === 'grid'
+        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-24"
         : "space-y-4 pb-24"
       }>
         {filteredProducts.map((product) => (
-          <Card 
-            key={product.id} 
-            className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${
-              viewMode === 'list' ? 'flex' : 'flex flex-col h-full'
-            }`}
+          <Card
+            key={product.id}
+            className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${viewMode === 'list' ? 'flex' : 'flex flex-col h-full'
+              }`}
             onClick={() => onViewProduct(product)}
           >
             <CardContent className={`p-0 ${viewMode === 'grid' ? 'flex flex-col h-full' : ''}`}>
-              <div className={`relative overflow-hidden ${
-                viewMode === 'list' ? 'w-32 flex-shrink-0' : 'rounded-t-lg flex-shrink-0'
-              }`}>
+              <div className={`relative overflow-hidden ${viewMode === 'list' ? 'w-32 flex-shrink-0' : 'rounded-t-lg flex-shrink-0'
+                }`}>
                 <ProductImage
                   images={product.images}
                   name={product.name}
@@ -224,7 +222,7 @@ function ProductCatalog({
                   </Badge>
                 )}
               </div>
-              
+
               <div className={`space-y-2 ${viewMode === 'list' ? 'p-4 flex-1' : 'p-4 flex-1 flex flex-col justify-between'}`}>
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-medium line-clamp-2 flex-1 min-w-0">{product.name}</h4>
@@ -262,14 +260,14 @@ function ProductCatalog({
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                   <span className="text-sm text-muted-foreground">
                     {product.rating} ({product.reviews.length})
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">R{product.price}</span>
                   {product.originalPrice && product.originalPrice !== product.price && (
@@ -278,23 +276,22 @@ function ProductCatalog({
                     </span>
                   )}
                 </div>
-                
+
                 <div className="flex gap-1">
                   {product.colors.slice(0, 4).map((color) => (
                     <div
                       key={color}
-                      className={`w-4 h-4 rounded-full border-2 border-gray-300 ${
-                        color.toLowerCase() === 'black' ? 'bg-black' :
-                        color.toLowerCase() === 'white' ? 'bg-white' :
-                        color.toLowerCase() === 'gray' ? 'bg-gray-400' :
-                        color.toLowerCase() === 'navy' ? 'bg-blue-900' :
-                        color.toLowerCase() === 'brown' ? 'bg-amber-800' :
-                        color.toLowerCase() === 'beige' ? 'bg-amber-100' :
-                        color.toLowerCase() === 'pink' ? 'bg-pink-400' :
-                        color.toLowerCase() === 'blue' ? 'bg-blue-500' :
-                        color.toLowerCase() === 'red' ? 'bg-red-500' :
-                        'bg-green-500'
-                      }`}
+                      className={`w-4 h-4 rounded-full border-2 border-gray-300 ${color.toLowerCase() === 'black' ? 'bg-black' :
+                          color.toLowerCase() === 'white' ? 'bg-white' :
+                            color.toLowerCase() === 'gray' ? 'bg-gray-400' :
+                              color.toLowerCase() === 'navy' ? 'bg-blue-900' :
+                                color.toLowerCase() === 'brown' ? 'bg-amber-800' :
+                                  color.toLowerCase() === 'beige' ? 'bg-amber-100' :
+                                    color.toLowerCase() === 'pink' ? 'bg-pink-400' :
+                                      color.toLowerCase() === 'blue' ? 'bg-blue-500' :
+                                        color.toLowerCase() === 'red' ? 'bg-red-500' :
+                                          'bg-green-500'
+                        }`}
                     />
                   ))}
                   {product.colors.length > 4 && (
@@ -321,7 +318,7 @@ function ProductCatalog({
           </Button>
         </div>
       )}
-      
+
       <BottomSpacer />
     </div>
   );
@@ -405,14 +402,14 @@ function AppContent() {
   // Wrapper functions to adapt CartContext functions to Cart component expectations
   const handleUpdateQuantity = async (productId: string, size: string, color: string, quantity: number) => {
     console.log('handleUpdateQuantity called:', { productId, size, color, quantity });
-    
+
     // Find the cart item that matches the productId, size, and color
-    const cartItem = items.find(item => 
-      item.productId === productId && 
-      item.size === size && 
+    const cartItem = items.find(item =>
+      item.productId === productId &&
+      item.size === size &&
       item.color === color
     );
-    
+
     if (cartItem) {
       // Use | as separator since UUIDs contain hyphens
       const identifier = `${productId}|${size}|${color}`;
@@ -430,17 +427,17 @@ function AppContent() {
 
   const handleRemoveItem = async (productId: string, size: string, color: string) => {
     console.log('handleRemoveItem called:', { productId, size, color });
-    
+
     // Find the cart item that matches the productId, size, and color
-    const cartItem = items.find(item => 
-      item.productId === productId && 
-      item.size === size && 
+    const cartItem = items.find(item =>
+      item.productId === productId &&
+      item.size === size &&
       item.color === color
     );
-    
+
     console.log('Found cart item:', cartItem);
     console.log('Current items:', items);
-    
+
     if (cartItem) {
       // For guest carts, we can use productId as identifier since guest cart items don't have database IDs
       // For authenticated users, we need to use a composite identifier or update CartContext to handle criteria
@@ -487,6 +484,7 @@ function AppContent() {
             product={selectedProduct}
             onBack={() => setCurrentPage('catalog')}
             onAddToCart={addItem}
+            onViewProduct={viewProduct}
           />
         ) : null;
       case 'cart':
@@ -511,17 +509,17 @@ function AppContent() {
             onBack={() => setCurrentPage('cart')}
           />
         );
-    case 'profile':
-      return user ? (
-        isAdmin ? (
-          <AdminAccountSettings />
-        ) : (
-          <Profile 
-            onLogout={() => {}} 
-            onNavigateToInfo={handleNavigateToInfo}
-          />
-        )
-      ) : null;
+      case 'profile':
+        return user ? (
+          isAdmin ? (
+            <AdminAccountSettings />
+          ) : (
+            <Profile
+              onLogout={() => { }}
+              onNavigateToInfo={handleNavigateToInfo}
+            />
+          )
+        ) : null;
       case 'rewards':
         return user ? <Rewards /> : null;
       case 'admin':
