@@ -1,7 +1,45 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
-import { supabase, getCurrentUser, isAdmin as checkIsAdmin } from '../utils/supabase/client';
+import { supabase, isAdmin as checkIsAdmin } from '../utils/supabase/client';
 import type { User } from '../App';
 import { Database } from '../utils/supabase/types';
+
+export type AuthResult = {
+  success: boolean;
+  error?: string;
+  needsVerification?: boolean;
+};
+
+// Map common Supabase auth errors to user-friendly messages.
+export const getAuthErrorMessage = (err: any): string => {
+  const message = (err?.message || '').toLowerCase();
+  const code = err?.code;
+
+  if (message.includes('invalid login credentials')) {
+    return 'Incorrect email or password. Please try again.';
+  }
+  if (message.includes('email not confirmed') || message.includes('email not verified')) {
+    return 'Your email has not been verified yet.';
+  }
+  if (message.includes('already been registered') || message.includes('already registered')) {
+    return 'An account with this email already exists. Try signing in instead.';
+  }
+  if (message.includes('at least 6 characters')) {
+    return 'Password must be at least 6 characters long.';
+  }
+  if (message.includes('email address is not authorized')) {
+    return 'This email address is not authorized to sign in.';
+  }
+  if (message.includes('rate limit') || message.includes('too many requests')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+  if (message.includes('unable to validate email')) {
+    return 'Please enter a valid email address.';
+  }
+  if (code === 'over_email_send_rate_limit') {
+    return 'Too many emails sent. Please wait a minute before trying again.';
+  }
+  return err?.message || 'Something went wrong. Please try again.';
+};
 
 type AuthContextType = {
   user: User | null;
@@ -10,11 +48,11 @@ type AuthContextType = {
   isAdmin: boolean;
   isEmailVerified: boolean;
   pendingVerification: boolean;
-  signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (email: string, password: string, name: string) => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string, name: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<boolean>;
-  resendVerification: () => Promise<boolean>;
+  resetPassword: (email: string) => Promise<AuthResult>;
+  resendVerification: (email?: string) => Promise<boolean>;
   checkVerificationStatus: () => Promise<void>;
 };
 
@@ -32,32 +70,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUser = useCallback(async () => {
     // Prevent multiple concurrent fetchUser calls
-    if (isFetchingRef.current) {
-      console.log('fetchUser: Already fetching, skipping...');
-      return;
-    }
-
-    console.log('fetchUser: Starting');
+    if (isFetchingRef.current) return;
     isFetchingRef.current = true;
 
     try {
       setLoading(true);
       setError(null);
 
-      console.log('fetchUser: Getting auth user from Supabase');
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      console.log('fetchUser: Checking admin status');
       const adminStatus = await checkIsAdmin();
-      console.log(`fetchUser: Admin status is ${adminStatus}`);
 
       if (authUser) {
-        console.log(`fetchUser: Auth user found with ID: ${authUser.id}`);
-        
-        // Check email verification status
         setIsEmailVerified(authUser.email_confirmed_at !== null);
-        
+
         // Get user profile from 'users' table
-        console.log('fetchUser: Fetching user profile from "users" table');
         const { data: userProfile, error: profileError } = await supabase
           .from('users')
           .select('*')
@@ -65,10 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .single();
 
         if (profileError && profileError.code !== 'PGRST116') { // Ignore 'no rows' error
-            console.error('fetchUser: Error fetching user profile:', profileError);
-            throw profileError;
+          throw profileError;
         }
-        console.log('fetchUser: User profile data:', userProfile);
 
         // Transform Supabase user to match our User type
         const transformedUser: User = {
@@ -86,66 +110,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         };
 
-        console.log('fetchUser: User state transformed and ready to be set:', transformedUser);
         setUser(transformedUser);
         setIsAdmin(adminStatus);
+        setPendingVerification(false);
       } else {
-        console.log('fetchUser: No auth user found. Clearing user state.');
         setUser(null);
         setIsAdmin(false);
         setIsEmailVerified(false);
+        setPendingVerification(false);
       }
     } catch (err: any) {
-      console.error('Error in fetchUser:', err);
+      console.error('fetchUser: Error loading user data:', err);
       setError(err.message || 'Failed to load user data');
       setUser(null);
       setIsAdmin(false);
     } finally {
-      console.log('fetchUser: Finished');
       setLoading(false);
       isFetchingRef.current = false;
     }
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<boolean> => {
-    console.log('signIn: Starting');
+  const signIn = async (email: string, password: string): Promise<AuthResult> => {
     setLoading(true);
     setError(null);
     try {
-      console.log('signIn: Calling Supabase signInWithPassword');
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
-      
-      console.log('signIn: Supabase call returned.');
-      console.log('signIn: Data:', data);
-      console.log('signIn: Error:', error);
 
       if (error) {
-        console.error('signIn: Supabase auth error:', error);
-        throw error;
+        const message = getAuthErrorMessage(error);
+        setError(message);
+        if (message.includes('not been verified')) {
+          setPendingVerification(true);
+          return { success: false, error: message, needsVerification: true };
+        }
+        return { success: false, error: message };
       }
-      
-      console.log('signIn: Supabase sign-in appears successful. Waiting for auth state change.');
-      // The onAuthStateChange listener will automatically call fetchUser.
-      return true;
+
+      return { success: true };
     } catch (err: any) {
-      console.error('Error in signIn:', err);
-      setError(err.message || 'Failed to sign in');
-      return false;
+      console.error('signIn: Unexpected error:', err);
+      const message = getAuthErrorMessage(err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
-      console.log('signIn: Finished');
       setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, name: string): Promise<boolean> => {
+  const signUp = async (email: string, password: string, name: string): Promise<AuthResult> => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -154,85 +173,102 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       });
-      
-      if (error) throw error;
-      
-      // Note: User will need to verify email before being fully signed in
-      return true;
+
+      if (error) {
+        const message = getAuthErrorMessage(error);
+        setError(message);
+        return { success: false, error: message };
+      }
+
+      // No session means email confirmation is required before the user can sign in.
+      const needsVerification = !!data.user && !data.session;
+      if (needsVerification) {
+        setPendingVerification(true);
+        setError(null);
+      }
+
+      return { success: true, needsVerification };
     } catch (err: any) {
-      console.error('Error signing up:', err);
-      setError(err.message || 'Failed to sign up');
-      return false;
+      console.error('signUp: Unexpected error:', err);
+      const message = getAuthErrorMessage(err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
   };
 
   const signOut = async (): Promise<void> => {
-    console.log('signOut: Starting logout process');
     isLoggingOutRef.current = true; // Set logout flag
 
     try {
       setLoading(true);
-      console.log('signOut: Calling supabase.auth.signOut()');
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('signOut: Supabase sign out error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('signOut: Supabase sign out successful');
-      console.log('signOut: Clearing local state');
       setUser(null);
       setIsAdmin(false);
-      console.log('signOut: Local state cleared');
+      setPendingVerification(false);
     } catch (err) {
       console.error('signOut: Error during logout:', err);
       setError('Failed to sign out');
     } finally {
-      console.log('signOut: Setting loading to false');
       setLoading(false);
       // Keep logout flag set until page reload happens
     }
   };
 
-  const resetPassword = async (email: string): Promise<boolean> => {
+  const resetPassword = async (email: string): Promise<AuthResult> => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
       const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
-      
-      return true;
+      if (error) {
+        const message = getAuthErrorMessage(error);
+        setError(message);
+        return { success: false, error: message };
+      }
+      return { success: true };
     } catch (err: any) {
-      console.error('Error resetting password:', err);
-      setError(err.message || 'Failed to reset password');
-      return false;
+      console.error('resetPassword: Unexpected error:', err);
+      const message = getAuthErrorMessage(err);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
   };
 
-  // Resend email verification
-  const resendVerification = async (): Promise<boolean> => {
+  // Resend email verification. Optionally takes an email (used when the user
+  // is not signed in yet, e.g. after signup with email confirmation enabled).
+  const resendVerification = async (email?: string): Promise<boolean> => {
     try {
       setError(null);
       setPendingVerification(true);
-      
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) throw new Error('User not found');
-      
+
+      let targetEmail = email;
+      if (!targetEmail) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser?.email) {
+          setError('No email address available. Please sign in first.');
+          return false;
+        }
+        targetEmail = authUser.email;
+      }
+
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: authUser.email!
+        email: targetEmail
       });
-      
-      if (error) throw error;
+
+      if (error) {
+        setError(getAuthErrorMessage(error));
+        return false;
+      }
       return true;
     } catch (err: any) {
-      console.error('Error resending verification:', err);
-      setError(err.message || 'Failed to resend verification email');
+      console.error('resendVerification: Unexpected error:', err);
+      setError(getAuthErrorMessage(err));
       return false;
     } finally {
       setPendingVerification(false);
@@ -253,21 +289,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Reset logout flag on component mount (after page reload)
   useEffect(() => {
-    console.log('AuthContext: Component mounted, resetting logout flag');
     isLoggingOutRef.current = false;
   }, []);
 
   // Set up auth state listener
   useEffect(() => {
-    console.log('AuthContext: Setting up auth state listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('AuthContext: Auth state changed:', event, session ? 'Session exists' : 'No session');
-
       // Skip fetchUser during logout to prevent interference with page reload
-      if (isLoggingOutRef.current && event === 'SIGNED_OUT') {
-        console.log('AuthContext: Skipping fetchUser during logout process');
-        return;
-      }
+      if (isLoggingOutRef.current && event === 'SIGNED_OUT') return;
 
       await fetchUser();
     });
@@ -276,7 +305,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchUser();
 
     return () => {
-      console.log('AuthContext: Unsubscribing from auth state listener');
       subscription.unsubscribe();
     };
   }, [fetchUser]);

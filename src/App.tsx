@@ -383,9 +383,9 @@ function AppContent() {
     requireAuth(() => setCurrentPage('rewards'), 'My Rewards', 'Please sign in to view your rewards.');
   };
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = (mode: 'login' | 'signup') => {
     setShowAuthModal(false);
-    toast.success(`Welcome back!`);
+    toast.success(mode === 'signup' ? 'Account created! Welcome to Rosemama!' : 'Welcome back!');
     if (authModalConfig.title.includes('Checkout')) {
       setCurrentPage('checkout');
     } else if (authModalConfig.title.includes('Profile')) {
@@ -579,8 +579,8 @@ function AppContent() {
         isOpen={showAuthModal}
         mode={authModalConfig.mode}
         onClose={() => setShowAuthModal(false)}
-        onLoginSuccess={handleAuthSuccess}
-        onSignupSuccess={handleAuthSuccess}
+        onLoginSuccess={() => handleAuthSuccess('login')}
+        onSignupSuccess={() => handleAuthSuccess('signup')}
         title={authModalConfig.title}
         description={authModalConfig.description}
         onSwitchMode={(newMode) => setAuthModalConfig(prev => ({ ...prev, mode: newMode }))}

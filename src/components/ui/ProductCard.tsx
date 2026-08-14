@@ -85,11 +85,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div 
-      className={`group relative flex flex-col h-full bg-white rounded-2xl overflow-hidden border border-neutral-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)] transition-all duration-300 cursor-pointer ${className}`}
+      className={`group relative flex flex-col h-full bg-white dark:bg-[#18181b] rounded-2xl overflow-hidden border border-neutral-200/90 dark:border-neutral-800 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)] transition-all duration-300 cursor-pointer ${className}`}
       onClick={() => onViewDetails?.(product)}
     >
       {/* ── 1. Image Container (STRICT 3:4 Aspect Ratio Canvas) ── */}
-      <div className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-100 flex-shrink-0">
+      <div className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
         <img
           src={currentImage}
           alt={product.name}
@@ -122,7 +122,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               className={`w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 ${
                 isLiked 
                   ? 'bg-rose-50 text-rose-600 border border-rose-200' 
-                  : 'bg-white/90 text-neutral-700 hover:text-rose-600 border border-neutral-200/50'
+                  : 'bg-white/90 text-neutral-700 hover:text-rose-600 border border-neutral-200/50 dark:bg-white/10 dark:text-neutral-200 dark:border-neutral-700 dark:hover:text-rose-400'
               }`}
               aria-label="Wishlist"
             >
@@ -130,7 +130,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </button>
             <button
               onClick={handleAddToCart}
-              className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-neutral-800 hover:text-black hover:bg-white hover:scale-110 flex items-center justify-center shadow-md transition-all duration-200 border border-neutral-200/50"
+              className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-neutral-800 hover:text-black hover:bg-white hover:scale-110 flex items-center justify-center shadow-md transition-all duration-200 border border-neutral-200/50 dark:bg-white/10 dark:text-neutral-200 dark:hover:text-white dark:hover:bg-white/20 dark:border-neutral-700"
               aria-label="Quick Add"
             >
               <ShoppingBag className="h-4 w-4" />
@@ -140,7 +140,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* ── 2. Card Content & Live Variant Image Thumbnails ── */}
-      <div className="p-3.5 flex-1 flex flex-col justify-between gap-2.5 bg-white">
+      <div className="p-3.5 flex-1 flex flex-col justify-between gap-2.5 bg-white dark:bg-transparent">
         
         {/* Category, Rating, Title */}
         <div>
@@ -150,27 +150,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
             <div className="flex items-center gap-1 flex-shrink-0">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              <span className="text-[11px] font-bold text-neutral-700">
+              <span className="text-[11px] font-bold text-neutral-700 dark:text-neutral-300">
                 {trustpilotRating?.rating || product.rating || 4.5}
               </span>
             </div>
           </div>
 
-          <h3 className="font-bold text-sm text-neutral-900 leading-snug line-clamp-1 group-hover:text-neutral-600 transition-colors">
+          <h3 className="font-bold text-sm text-neutral-900 dark:text-white leading-snug line-clamp-1 group-hover:text-neutral-600 dark:group-hover:text-neutral-400 transition-colors">
             {product.name}
           </h3>
         </div>
 
         {/* Price & Variant Thumbnail Circles */}
-        <div className="pt-2 border-t border-neutral-100 flex items-center justify-between gap-2">
+        <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between gap-2">
           
           {/* Price */}
           <div className="flex items-baseline gap-1.5 flex-shrink-0">
-            <span className="font-black text-sm sm:text-base text-neutral-900">
+            <span className="font-black text-sm sm:text-base text-neutral-900 dark:text-white">
               {formatCurrency(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-xs text-neutral-400 line-through">
+              <span className="text-xs text-neutral-400 dark:text-neutral-500 line-through">
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
@@ -186,8 +186,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   onMouseEnter={() => setSelectedImageIndex(idx)}
                   className={`relative w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden border-2 transition-all duration-200 flex-shrink-0 ${
                     selectedImageIndex === idx
-                      ? 'border-[#111] scale-110 z-10 shadow-xs'
-                      : 'border-white hover:border-neutral-400 hover:scale-105 opacity-80 hover:opacity-100'
+                      ? 'border-[#111] dark:border-white scale-110 z-10 shadow-xs'
+                      : 'border-white hover:border-neutral-400 hover:scale-105 opacity-80 hover:opacity-100 dark:border-neutral-600 dark:hover:border-neutral-400'
                   }`}
                   aria-label={`View angle ${idx + 1}`}
                 >
@@ -199,7 +199,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </button>
               ))}
               {imagesList.length > 4 && (
-                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center text-[8px] font-bold text-neutral-600 flex-shrink-0">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center text-[8px] font-bold text-neutral-600 dark:text-neutral-300 flex-shrink-0">
                   +{imagesList.length - 4}
                 </span>
               )}
