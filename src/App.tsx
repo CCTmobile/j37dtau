@@ -493,6 +493,8 @@ function AppContent() {
             onBack={() => setCurrentPage('catalog')}
             onAddToCart={addItem}
             onViewProduct={viewProduct}
+            onGoToCart={() => setCurrentPage('cart')}
+            onGoToCheckout={() => setCurrentPage('checkout')}
           />
         ) : null;
       case 'cart':

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ShoppingCart, Eye, Heart } from 'lucide-react';
+import { Star, ShoppingBag, Heart } from 'lucide-react';
 import { getTrustpilotProductRating } from '../../utils/trustpilot';
-import { ProductImage } from './responsive-image';
 import type { Product } from '../../App';
 
 interface ProductCardProps {
   product: Product;
-  layout?: 'compact' | 'enhanced';
+  layout?: string;
   showQuickActions?: boolean;
   onAddToCart?: (product: Product) => void;
   onViewDetails?: (product: Product) => void;
@@ -25,30 +24,44 @@ const formatCurrency = (amount: number): string => {
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
-  layout = 'enhanced',
   showQuickActions = true,
   onAddToCart,
   onViewDetails,
   onToggleWishlist,
   className = ''
 }) => {
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [trustpilotRating, setTrustpilotRating] = useState<{
     rating: number;
     reviewCount: number;
     trustScore: number;
   } | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+
+  // Sync selected index if product changes
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [product.id]);
 
   useEffect(() => {
+    let isMounted = true;
     const loadRating = async () => {
       try {
         const rating = await getTrustpilotProductRating(product.id);
-        setTrustpilotRating(rating);
+        if (isMounted) setTrustpilotRating(rating);
       } catch (error) {
-        console.error('Failed to load Trustpilot rating:', error);
+        // Fallback silently
       }
     };
     loadRating();
+    return () => { isMounted = false; };
   }, [product.id]);
+
+  const imagesList = (product.images && product.images.length > 0)
+    ? product.images
+    : ['https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800'];
+
+  const currentImage = imagesList[selectedImageIndex] || imagesList[0];
 
   const discountPercentage = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -61,134 +74,142 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setIsLiked(!isLiked);
     onToggleWishlist?.(product);
   };
 
-  const getColorClass = (color: string) => {
-    const colorLower = color.toLowerCase();
-    switch (colorLower) {
-      case 'black': return 'bg-black border-gray-300';
-      case 'white': return 'bg-white border-gray-300';
-      case 'gray': case 'grey': return 'bg-gray-400 border-gray-400';
-      case 'navy': return 'bg-blue-900 border-blue-900';
-      case 'brown': return 'bg-amber-800 border-amber-800';
-      case 'beige': return 'bg-[#f5f5dc] border-[#e8e8d0]';
-      case 'pink': return 'bg-pink-400 border-pink-400';
-      case 'blue': return 'bg-blue-500 border-blue-500';
-      case 'red': return 'bg-red-500 border-red-500';
-      case 'green': return 'bg-green-500 border-green-500';
-      case 'yellow': return 'bg-yellow-400 border-yellow-400';
-      case 'purple': return 'bg-purple-500 border-purple-500';
-      case 'orange': return 'bg-orange-500 border-orange-500';
-      default: return 'bg-gradient-to-br from-purple-400 to-pink-400';
-    }
+  const handleVariantClick = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setSelectedImageIndex(index);
   };
 
   return (
     <div 
-      className={`relative rounded-[1.5rem] overflow-hidden cursor-pointer group bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_48px_rgba(0,0,0,0.12)] transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${className}`}
+      className={`group relative flex flex-col h-full bg-white rounded-2xl overflow-hidden border border-neutral-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.1)] transition-all duration-300 cursor-pointer ${className}`}
       onClick={() => onViewDetails?.(product)}
-      style={{ aspectRatio: '3/4' }}
     >
-      {/* Image with zoom effect */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#f4f1eb]">
-        <ProductImage
-          images={product.images}
-          name={product.name}
-          className="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-105"
+      {/* ── 1. Image Container (STRICT 3:4 Aspect Ratio Canvas) ── */}
+      <div className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-100 flex-shrink-0">
+        <img
+          src={currentImage}
+          alt={product.name}
+          className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+          loading="lazy"
         />
-      </div>
 
-      {/* Gradient overlay for text legibility */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none opacity-80" />
+        {/* Soft Vignette Overlay on Hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-      {/* Badges */}
-      <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
-        {discountPercentage > 0 && (
-          <span className="bg-white/90 backdrop-blur-md text-[#111] text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow-sm">
-            Sale
-          </span>
-        )}
-        {!product.inStock && (
-          <span className="bg-black/70 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow-sm">
-            Sold Out
-          </span>
-        )}
-      </div>
-
-      {/* Quick Actions overlay */}
-      {showQuickActions && (
-        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-x-2 group-hover:translate-x-0">
-          <button
-            onClick={handleToggleWishlist}
-            className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white hover:text-rose-500 p-2 rounded-full transition-all duration-200"
-            aria-label="Add to wishlist"
-          >
-            <Heart className="h-4 w-4" />
-          </button>
-          <button
-            onClick={handleAddToCart}
-            className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white hover:text-[#111] p-2 rounded-full transition-all duration-200"
-            aria-label="Add to cart"
-          >
-            <ShoppingCart className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Product Info - Slides up on hover */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ease-out z-10">
-        
-        {/* Category & Rating */}
-        <div className="flex items-center justify-between mb-1 opacity-80">
-          <span className="text-[10px] text-white/90 uppercase tracking-[0.1em] font-semibold">
-            {product.category}
-          </span>
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            <span className="text-[10px] text-white/90 font-medium">
-              {trustpilotRating?.rating || product.rating}
+        {/* Badges */}
+        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10 pointer-events-none">
+          {discountPercentage > 0 && (
+            <span className="bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
+              -{discountPercentage}%
             </span>
-          </div>
+          )}
+          {!product.inStock && (
+            <span className="bg-neutral-900/85 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm">
+              Sold Out
+            </span>
+          )}
         </div>
 
-        {/* Name */}
-        <h3 className="text-white text-[1.1rem] font-bold leading-[1.15] mb-2 drop-shadow-sm tracking-tight line-clamp-2">
-          {product.name}
-        </h3>
+        {/* Quick Action Floating Buttons */}
+        {showQuickActions && (
+          <div className="absolute top-2.5 right-2.5 flex flex-col gap-2 z-20">
+            <button
+              onClick={handleToggleWishlist}
+              className={`w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 ${
+                isLiked 
+                  ? 'bg-rose-50 text-rose-600 border border-rose-200' 
+                  : 'bg-white/90 text-neutral-700 hover:text-rose-600 border border-neutral-200/50'
+              }`}
+              aria-label="Wishlist"
+            >
+              <Heart className={`h-4 w-4 ${isLiked ? 'fill-rose-600 text-rose-600' : ''}`} />
+            </button>
+            <button
+              onClick={handleAddToCart}
+              className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-neutral-800 hover:text-black hover:bg-white hover:scale-110 flex items-center justify-center shadow-md transition-all duration-200 border border-neutral-200/50"
+              aria-label="Quick Add"
+            >
+              <ShoppingBag className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
 
-        {/* Price & Colors */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-white font-bold tracking-tight">
+      {/* ── 2. Card Content & Live Variant Image Thumbnails ── */}
+      <div className="p-3.5 flex-1 flex flex-col justify-between gap-2.5 bg-white">
+        
+        {/* Category, Rating, Title */}
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 truncate">
+              {product.category || 'Collection'}
+            </span>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              <span className="text-[11px] font-bold text-neutral-700">
+                {trustpilotRating?.rating || product.rating || 4.5}
+              </span>
+            </div>
+          </div>
+
+          <h3 className="font-bold text-sm text-neutral-900 leading-snug line-clamp-1 group-hover:text-neutral-600 transition-colors">
+            {product.name}
+          </h3>
+        </div>
+
+        {/* Price & Variant Thumbnail Circles */}
+        <div className="pt-2 border-t border-neutral-100 flex items-center justify-between gap-2">
+          
+          {/* Price */}
+          <div className="flex items-baseline gap-1.5 flex-shrink-0">
+            <span className="font-black text-sm sm:text-base text-neutral-900">
               {formatCurrency(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-white/60 text-xs line-through">
+              <span className="text-xs text-neutral-400 line-through">
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
           </div>
-          
-          {/* Swatches */}
-          {product.colors && product.colors.length > 0 && (
-            <div className="flex -space-x-1">
-              {product.colors.slice(0, 3).map((color, idx) => (
-                <div
+
+          {/* Interactive Variant Circles (Image Swapping on Hover/Click) */}
+          {imagesList.length > 1 && (
+            <div className="flex items-center -space-x-1.5 overflow-hidden">
+              {imagesList.slice(0, 4).map((imgUrl, idx) => (
+                <button
                   key={idx}
-                  className={`w-3.5 h-3.5 rounded-full border border-white/40 ${getColorClass(color)}`}
-                  title={color}
-                />
+                  onClick={(e) => handleVariantClick(e, idx)}
+                  onMouseEnter={() => setSelectedImageIndex(idx)}
+                  className={`relative w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden border-2 transition-all duration-200 flex-shrink-0 ${
+                    selectedImageIndex === idx
+                      ? 'border-[#111] scale-110 z-10 shadow-xs'
+                      : 'border-white hover:border-neutral-400 hover:scale-105 opacity-80 hover:opacity-100'
+                  }`}
+                  aria-label={`View angle ${idx + 1}`}
+                >
+                  <img
+                    src={imgUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </button>
               ))}
-              {product.colors.length > 3 && (
-                <div className="w-3.5 h-3.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 flex items-center justify-center text-[8px] font-bold text-white">
-                  +
-                </div>
+              {imagesList.length > 4 && (
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center text-[8px] font-bold text-neutral-600 flex-shrink-0">
+                  +{imagesList.length - 4}
+                </span>
               )}
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
 };
+
+export default ProductCard;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, User, ShoppingCart, ArrowUpRight, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { LoadingSprite } from '../ui/LoadingSprite';
+import { Badge } from '../ui/badge';
 import type { StorefrontCallbacks } from './types';
 import '../../styles/home.css';
 
@@ -36,27 +37,28 @@ export function StorefrontHome({
     <div className="home-page">
       <div className="home-inner">
 
-        {/* ──────────── LOGO BANNER ──────────── */}
-        <div className="home-logo-banner" onClick={() => onShopAll?.()}>
-          <span className="home-logo-banner-text">ROSEMAMA</span>
-          <span className="home-logo-banner-sub">— The Edit</span>
-        </div>
-
-        {/* ──────────── HEADER (desktop nav + actions) ──────────── */}
+        {/* ──────────── HEADER ──────────── */}
         <header className="home-header">
-          <div className="home-logo home-logo-desktop" onClick={() => onShopAll?.()}>ROSEMAMA</div>
+          <div className="home-logo" onClick={() => onShopAll?.()}>
+            <span className="home-logo-main">ROSEMAMA</span>
+            <span className="home-logo-tag">CLOTHING</span>
+          </div>
 
           <nav className="home-nav-links">
-            <a href="#" onClick={e => { e.preventDefault(); onNavigateToCategory?.('All'); }}>Shop</a>
-            <a href="#" onClick={e => { e.preventDefault(); onNavigateToCategory?.('Dresses'); }}>Collections</a>
-            <a href="#" onClick={e => { e.preventDefault(); onShopAll?.(); }}>New In</a>
+            <a href="#" onClick={e => { e.preventDefault(); onNavigateToCategory?.('All'); }} className="home-nav-link">Shop</a>
+            <a href="#" onClick={e => { e.preventDefault(); onNavigateToCategory?.('Dresses'); }} className="home-nav-link">Collections</a>
+            <a href="#" onClick={e => { e.preventDefault(); onShopAll?.(); }} className="home-nav-link">New In</a>
           </nav>
 
           <div className="home-header-actions">
-            <button className="home-icon-btn" onClick={() => onShopAll?.()}><Search size={16} /></button>
-            <button className="home-icon-btn"><User size={16} /></button>
-            <button className="home-icon-btn home-cart-btn" onClick={() => onShopAll?.()}>
-              <ShoppingCart size={16} />
+            <button className="home-icon-btn home-search-btn" onClick={() => onShopAll?.()} aria-label="Search">
+              <Search size={18} />
+            </button>
+            <button className="home-icon-btn home-profile-btn" aria-label="Profile">
+              <User size={18} />
+            </button>
+            <button className="home-icon-btn home-cart-btn" onClick={() => onShopAll?.()} aria-label="Cart">
+              <ShoppingCart size={18} />
               <span className="home-cart-dot" />
             </button>
           </div>
@@ -247,6 +249,8 @@ export function StorefrontHome({
                 </div>
               </div>
             ))}
+            {/* Add empty state when no featured items */}
+            {FEATURED.length === 0 && <p className="home-empty-state">No items found matching your criteria</p>}
           </div>
         </section>
 
