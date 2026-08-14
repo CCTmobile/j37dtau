@@ -7,8 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
 import { Checkbox } from './ui/checkbox';
-import { ArrowLeft, CreditCard } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ArrowLeft, CreditCard, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createOrderFromCart, createGuestOrder } from '../utils/supabase/client';
 import { trackPurchaseCompletion } from '../utils/trustpilot';
@@ -457,12 +456,11 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                 <div className="space-y-3">
                   {items.map((item) => (
                     <div key={`${item.productId}-${item.size}-${item.color}`} className="flex gap-3">
-                          <ImageWithFallback
-                        src={item.product.images[0]}
-                        alt={item.product.name}
-                        className="w-12 h-12 object-cover rounded"
-                        loading="eager"
-                      />
+                          {/* Static Aesthetic Thumbnail */}
+                          <div className="w-12 h-12 rounded flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 shadow-inner relative overflow-hidden">
+                            <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
+                            <Sparkles className="h-4 w-4 text-white/60 relative z-10" />
+                          </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium line-clamp-1">{item.product.name}</p>
                         <p className="text-xs text-muted-foreground">

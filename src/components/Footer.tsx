@@ -5,12 +5,19 @@ import TrustpilotWidget from './ui/TrustpilotWidget';
 
 interface FooterProps {
   onInfoClick?: (page: string) => void;
+  onNavigateToCategory?: (category: string) => void;
 }
 
-export function Footer({ onInfoClick }: FooterProps) {
+export function Footer({ onInfoClick, onNavigateToCategory }: FooterProps) {
   const handleInfoNavigation = (page: string) => {
     if (onInfoClick) {
       onInfoClick(page);
+    }
+  };
+
+  const handleCategoryNavigation = (category: string) => {
+    if (onNavigateToCategory) {
+      onNavigateToCategory(category);
     }
   };
 
@@ -52,11 +59,11 @@ export function Footer({ onInfoClick }: FooterProps) {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Shop</h4>
             <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
-              <li><button className="hover:text-slate-900 dark:hover:text-white transition-colors">New Arrivals</button></li>
-              <li><button className="hover:text-slate-900 dark:hover:text-white transition-colors">Women</button></li>
-              <li><button className="hover:text-slate-900 dark:hover:text-white transition-colors">Men</button></li>
-              <li><button className="hover:text-slate-900 dark:hover:text-white transition-colors">Sale</button></li>
-              <li><button className="hover:text-slate-900 dark:hover:text-white transition-colors">Size Guide</button></li>
+              <li><button onClick={() => handleCategoryNavigation('All')} className="hover:text-slate-900 dark:hover:text-white transition-colors">New Arrivals</button></li>
+              <li><button onClick={() => handleCategoryNavigation('Dresses')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Women</button></li>
+              <li><button onClick={() => handleCategoryNavigation('Casual')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Men</button></li>
+              <li><button onClick={() => handleCategoryNavigation('All')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Sale</button></li>
+              <li><button onClick={() => handleInfoNavigation('help')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Size Guide</button></li>
             </ul>
           </div>
 
@@ -166,7 +173,7 @@ export function Footer({ onInfoClick }: FooterProps) {
         {/* Bottom Bar */}
         <div className="border-t border-slate-300 dark:border-slate-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            © 2024 Rosémama Clothing. All rights reserved.
+            © {new Date().getFullYear()} Rosémama Clothing. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-slate-500 dark:text-slate-400">
             <button 

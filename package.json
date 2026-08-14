@@ -49,6 +49,7 @@
             "dotenv": "^17.2.2",
             "emailjs-com": "^3.2.0",
             "embla-carousel-react": "^8.6.0",
+            "framer-motion": "^13.1.0",
             "hono": "^4.0.0",
             "html2canvas": "^1.4.1",
             "input-otp": "^1.4.2",

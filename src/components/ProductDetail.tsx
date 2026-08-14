@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
-import { ArrowLeft, Star, Heart, Share2, ShoppingBag, Plus, Minus, Truck, Shield, RotateCcw, Copy, MessageCircle, ChevronRight, Home } from 'lucide-react';
+import { ArrowLeft, Star, Heart, Share2, ShoppingBag, Plus, Minus, Truck, Shield, RotateCcw, Copy, MessageCircle, ChevronRight, Home, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
@@ -38,11 +38,22 @@ export function ProductDetail({ product, onAddToCart, onBack, onViewProduct }: P
   // Scroll to top when product changes
   useEffect(() => {
     window.scrollTo(0, 0);
-    setSelectedImageIndex(0);
     setQuantity(1);
     setSelectedSize('');
     setSelectedColor('');
   }, [product.id]);
+
+  const getGradientForCategory = (category: string) => {
+    switch (category) {
+      case 'Dresses': return 'bg-gradient-to-tr from-pink-400 to-purple-600';
+      case 'Shoes': return 'bg-gradient-to-bl from-purple-500 to-indigo-500';
+      case 'Accessories': return 'bg-gradient-to-br from-rose-400 to-pink-600';
+      case 'Casual': return 'bg-gradient-to-r from-fuchsia-500 to-pink-500';
+      case 'Outwear': return 'bg-gradient-to-tl from-purple-600 to-rose-400';
+      case 'Party': return 'bg-gradient-to-t from-pink-500 to-purple-500';
+      default: return 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-400';
+    }
+  };
 
   // Close share menu when clicking outside
   useEffect(() => {
@@ -151,17 +162,22 @@ export function ProductDetail({ product, onAddToCart, onBack, onViewProduct }: P
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-12">
-        {/* Product Images */}
+        {/* Static Aesthetic Graphic */}
         <div className="space-y-4">
-          <div className="relative group">
-            {/* Main Image Display */}
-            <div className="aspect-square overflow-hidden rounded-xl bg-secondary/10 border border-border/50">
-              <img
-                src={product.images[selectedImageIndex] || product.images[0]}
-                alt={`${product.name} - Image ${selectedImageIndex + 1}`}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="eager"
-              />
+          <div className="relative group w-full">
+            {/* Main Aesthetic Display */}
+            <div className={`aspect-square overflow-hidden rounded-xl border border-border/50 relative flex items-center justify-center ${getGradientForCategory(product.category)}`}>
+               {/* Pattern overlay */}
+               <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
+               <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]"></div>
+               
+               <div className="relative z-10 flex flex-col items-center justify-center p-8 text-center">
+                  <Sparkles className="w-12 h-12 text-white/70 mb-4" />
+                  <span className="text-white/90 text-sm font-bold tracking-[0.3em] uppercase mb-3 drop-shadow-sm">{product.category || 'Collection'}</span>
+                  <h2 className="text-white text-5xl font-black leading-tight drop-shadow-lg">
+                    {product.name.split(' ').slice(0, 2).join(' ')}
+                  </h2>
+               </div>
             </div>
             {product.originalPrice && (
               <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground z-10 shadow-lg text-sm px-3 py-1">
@@ -174,29 +190,6 @@ export function ProductDetail({ product, onAddToCart, onBack, onViewProduct }: P
               </Badge>
             )}
           </div>
-
-          {/* Thumbnail Gallery */}
-          {product.images.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === index
-                      ? 'border-primary shadow-md ring-2 ring-primary/20'
-                      : 'border-transparent hover:border-gray-300'
-                    }`}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="eager"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Product Details */}
@@ -500,12 +493,12 @@ export function ProductDetail({ product, onAddToCart, onBack, onViewProduct }: P
                 className="group cursor-pointer space-y-3"
                 onClick={() => onViewProduct(related)}
               >
-                <div className="aspect-[3/4] overflow-hidden rounded-xl bg-secondary/10 border border-border/50 relative">
-                  <ProductImage
-                    images={related.images}
-                    name={related.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                <div className={`aspect-[3/4] overflow-hidden rounded-xl border border-border/50 relative flex flex-col items-center justify-center p-4 text-center ${getGradientForCategory(related.category)}`}>
+                  <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
+                  <Sparkles className="w-6 h-6 text-white/50 mb-2 relative z-10" />
+                  <h4 className="text-white text-xl font-bold relative z-10 drop-shadow-md">
+                    {related.name.split(' ').slice(0, 2).join(' ')}
+                  </h4>
                   {related.originalPrice && (
                     <Badge className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs">
                       {Math.round((1 - related.price / related.originalPrice) * 100)}% OFF

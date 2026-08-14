@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Star, ChevronRight, Sparkles, TrendingUp, Heart } from 'lucide-react';
-import { ResponsiveImage } from './ui/responsive-image';
+
 import { ProductCard } from './ui/ProductCard';
 import { TrustpilotWidget } from './ui/TrustpilotWidget';
 import type { Product, User } from '../App';
@@ -112,33 +112,34 @@ export function Home({ onViewProduct, onNavigateToCategory }: HomeProps) {
   return (
     <div className="space-y-8 pb-24">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-br from-primary/5 to-secondary/10 dark:from-primary/10 dark:to-secondary/20 px-6 py-16 rounded-b-3xl overflow-hidden">
-        <div className="absolute inset-0 bg-dots-pattern opacity-50"></div>
-        <div className="container mx-auto text-center space-y-4 relative">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-            <span className="text-sm font-medium text-primary bg-primary/10 dark:bg-primary/20 px-3 py-1 rounded-full">
-              {user ? 'Personalized for You' : 'Latest Collection'}
+      <div className="relative bg-gradient-to-br from-purple-900 via-pink-800 to-rose-600 dark:from-purple-950 dark:via-pink-900 dark:to-rose-800 px-6 py-24 rounded-b-[3rem] overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)] opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent"></div>
+        <div className="container mx-auto text-center space-y-6 relative z-10">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <Sparkles className="h-6 w-6 text-pink-200 animate-pulse" />
+            <span className="text-sm font-bold text-pink-100 tracking-[0.2em] uppercase bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20">
+              {user ? 'Personalized for You' : 'The New Aesthetic'}
             </span>
           </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
+          <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-tight drop-shadow-xl tracking-tight">
             {getPersonalizedMessage()}
           </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto text-lg leading-relaxed">
+          <p className="text-pink-100 max-w-2xl mx-auto text-xl leading-relaxed font-light drop-shadow-md">
             {user
               ? "Your fashion journey awaits with personalized recommendations tailored just for you."
-              : "Explore our curated collection of premium fashion pieces. Sign in to unlock exclusive rewards and personalized recommendations!"
+              : "Discover our curated collection of aesthetic fashion pieces. Elevate your style with bold new designs."
             }
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Button onClick={() => onNavigateToCategory('All')} size="lg" className="group transform hover:scale-105 transition-all duration-300">
-              <span className="mr-2">Shop Collection</span>
-              <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+            <Button onClick={() => onNavigateToCategory('All')} size="lg" className="group bg-white text-purple-900 hover:bg-pink-100 transform hover:scale-105 transition-all duration-300 h-14 px-8 text-lg rounded-full shadow-xl">
+              <span className="mr-2 font-bold">Explore Collection</span>
+              <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             {user && (
-              <Button variant="outline" size="lg" onClick={() => onNavigateToCategory('Sale')} className="group transform hover:scale-105 transition-all duration-300">
-                <span className="mr-2">View Offers</span>
-                <TrendingUp className="h-4 w-4 group-hover:rotate-12 transition-transform" />
+              <Button variant="outline" size="lg" onClick={() => onNavigateToCategory('Sale')} className="group transform hover:scale-105 transition-all duration-300 h-14 px-8 text-lg rounded-full border-2 border-white/30 text-white hover:bg-white/10 backdrop-blur-md">
+                <span className="mr-2 font-medium">View Offers</span>
+                <TrendingUp className="h-5 w-5 group-hover:rotate-12 transition-transform" />
               </Button>
             )}
           </div>

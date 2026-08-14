@@ -6,8 +6,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { Edit, Trash2, Search, Eye, Star, Package, Palette, Ruler, AlertTriangle, Grid3X3, List } from 'lucide-react';
-import { ResponsiveImage } from '../ui/responsive-image';
+import { Edit, Trash2, Search, Eye, Star, Package, Palette, Ruler, AlertTriangle, Grid3X3, List, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteProduct } from '../../utils/supabase/client';
 import type { Product } from '../../App';
@@ -211,12 +210,10 @@ function ProductListItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
       <td className="px-3 py-3 align-top">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-12 w-12 rounded-md overflow-hidden bg-neutral-700">
-            <ResponsiveImage
-              src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
-              alt={product.name}
-              className="h-12 w-12 object-cover"
-              priority={true}
-            />
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-80 mix-blend-overlay"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-white/70" />
+            </div>
           </div>
           <div className="ml-4">
             <div className="text-sm font-semibold text-neutral-200 max-w-[10rem] md:max-w-xs truncate" title={product.name}>
@@ -331,12 +328,11 @@ function ProductGridItem({ product, onEdit, onDelete, onView, formatPrice }: Pro
     <div className="border border-neutral-800 rounded-lg overflow-hidden hover:shadow-lg hover:shadow-black/30 transition-shadow bg-neutral-900/70 backdrop-blur w-full min-w-0">
       {/* Product Image */}
       <div className="relative w-full aspect-square bg-neutral-800 overflow-hidden">
-        <ResponsiveImage
-          src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
-          alt={product.name}
-          className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          priority={true}
-        />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-80 mix-blend-overlay"></div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+          <Sparkles className="h-8 w-8 text-white/50 mb-2" />
+          <span className="text-white/80 font-bold text-xs uppercase tracking-wider line-clamp-2">{product.name}</span>
+        </div>
         
         {/* Stock Badge */}
         <div className="absolute top-2 right-2">
@@ -447,24 +443,10 @@ function ProductDetailModal({ product }: ProductDetailModalProps) {
       {/* Main Product Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <ResponsiveImage
-            src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iMjAwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmaWxsPSIjOTc5N2E3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+Cjwvc3ZnPgo='}
-            alt={product.name}
-            className="w-full h-64 object-cover rounded-lg"
-            priority={true}
-          />
-          {product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2 mt-4">
-              {product.images.slice(1, 5).map((image: string, index: number) => (
-                <ResponsiveImage
-                  key={index}
-                  src={image}
-                  alt={`${product.name} ${index + 2}`}
-                  className="w-full h-16 object-cover rounded"
-                />
-              ))}
-            </div>
-          )}
+          <div className="w-full h-64 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 relative flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
+             <Sparkles className="h-16 w-16 text-white/50" />
+          </div>
         </div>
 
         <div className="space-y-4">

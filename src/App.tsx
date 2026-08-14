@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Home } from './components/Home';
+import { StorefrontHome } from './components/storefront/StorefrontHome';
 import { ProductDetail } from './components/ProductDetail';
 import { Cart } from './components/Cart';
 import { Profile } from './components/Profile';
@@ -363,6 +363,13 @@ function AppContent() {
     setCurrentPage('catalog');
   };
 
+  const navigateToHomeSection = (sectionId: string) => {
+    setCurrentPage('home');
+    setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
+
   const handleProceedToCheckout = () => {
     // Allow guest checkout - no authentication required
     setCurrentPage('checkout');
@@ -464,9 +471,10 @@ function AppContent() {
     switch (currentPage) {
       case 'home':
         return (
-          <Home
+          <StorefrontHome
             onViewProduct={viewProduct}
             onNavigateToCategory={navigateToCategory}
+            onShopAll={() => setCurrentPage('catalog')}
           />
         );
       case 'catalog':
@@ -538,6 +546,8 @@ function AppContent() {
       <Header
         onSearch={setSearchQuery}
         onProfileClick={handleProfileClick}
+        onNavigateToCategory={navigateToCategory}
+        onSectionNavigate={navigateToHomeSection}
         onInfoClick={() => {
           setInfoPage('about');
           setCurrentPage('info');
@@ -548,10 +558,13 @@ function AppContent() {
         {renderCurrentPage()}
       </main>
 
-      <Footer onInfoClick={(page) => {
-        setInfoPage(page);
-        setCurrentPage('info');
-      }} />
+      <Footer
+        onNavigateToCategory={navigateToCategory}
+        onInfoClick={(page) => {
+          setInfoPage(page);
+          setCurrentPage('info');
+        }}
+      />
 
       <BottomNav
         currentPage={currentPage}

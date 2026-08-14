@@ -3,8 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Separator } from './ui/separator';
-import { Plus, Minus, Trash2, ShoppingBag, Tag } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Plus, Minus, Trash2, ShoppingBag, Tag, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CartItem } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
@@ -81,12 +80,11 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
             <Card key={`${item.productId}-${item.size}-${item.color}`}>
               <CardContent className="p-6">
                 <div className="flex gap-4">
-                  <ImageWithFallback
-                    src={item.product.images[0]}
-                    alt={item.product.name}
-                    className="w-24 h-24 object-cover rounded-lg"
-                    loading="eager"
-                  />
+                  {/* Static Aesthetic Thumbnail */}
+                  <div className="w-24 h-24 rounded-lg flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 shadow-inner overflow-hidden relative">
+                    <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
+                    <Sparkles className="h-8 w-8 text-white/60 relative z-10" />
+                  </div>
                   
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between items-start">

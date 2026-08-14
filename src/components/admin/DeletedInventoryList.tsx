@@ -6,8 +6,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { RotateCcw, Trash2, Search, Eye, Star, Archive, Palette, Ruler, AlertTriangle, Grid3X3, List, Calendar } from 'lucide-react';
-import { ResponsiveImage } from '../ui/responsive-image';
+import { RotateCcw, Trash2, Search, Eye, Star, Archive, Palette, Ruler, AlertTriangle, Grid3X3, List, Calendar, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { restoreProduct, permanentlyDeleteProduct } from '../../utils/supabase/client';
 import type { Product } from '../../App';
@@ -260,12 +259,10 @@ function DeletedProductListItem({
       <td className="px-3 py-3 align-top">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-12 w-12 rounded-md overflow-hidden bg-neutral-700 relative">
-            <ResponsiveImage
-              src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
-              alt={product.name}
-              className="h-12 w-12 object-cover grayscale"
-              priority={true}
-            />
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-50 mix-blend-overlay grayscale"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-white/50" />
+            </div>
             <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
               <Archive className="h-4 w-4 text-red-400" />
             </div>
@@ -407,12 +404,11 @@ function DeletedProductGridItem({
     <div className="border border-orange-800/40 rounded-lg overflow-hidden hover:shadow-lg hover:shadow-orange-900/30 transition-shadow bg-neutral-900/70 backdrop-blur w-full min-w-0 opacity-70">
       {/* Product Image */}
       <div className="relative w-full aspect-square bg-neutral-800 overflow-hidden">
-        <ResponsiveImage
-          src={product.images[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0iI2Y5ZmFmYiIgc3Ryb2tlPSIjYWNhYmRhIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDAiIHk9IjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk3OTdhNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'}
-          alt={product.name}
-          className="absolute inset-0 w-full h-full object-cover grayscale"
-          priority={true}
-        />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-50 mix-blend-overlay grayscale"></div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center">
+          <Sparkles className="h-8 w-8 text-white/30 mb-2" />
+          <span className="text-white/50 font-bold text-xs uppercase tracking-wider line-clamp-2">{product.name}</span>
+        </div>
         
         {/* Deleted Badge */}
         <div className="absolute top-2 right-2">

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, memo } from 'react';
-import { ShoppingCart, User, Search, Menu, Sun, Moon, Sparkles, Users, UserCheck, Tag, Info } from 'lucide-react';
+import { ShoppingCart, User, Search, Menu, Sun, Moon, Sparkles, Users, UserCheck, Tag, Info, ShoppingBag } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Input } from './ui/input';
@@ -16,9 +16,11 @@ interface HeaderProps {
   cartItemCount?: number;
   onProfileClick?: () => void;
   onInfoClick?: () => void;
+  onNavigateToCategory?: (category: string) => void;
+  onSectionNavigate?: (sectionId: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileClick, onInfoClick }) => {
+const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileClick, onInfoClick, onNavigateToCategory, onSectionNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -33,11 +35,12 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
   }, [onSearch, searchQuery]);
 
   const navItems = [
-    { name: 'New Arrivals', href: '#new', icon: Sparkles, onClick: () => {} },
-    { name: 'Women', href: '#women', icon: Users, onClick: () => {} },
-    { name: 'Men', href: '#men', icon: UserCheck, onClick: () => {} },
-    { name: 'Sale', href: '#sale', icon: Tag, onClick: () => {} },
-    { name: 'About', href: '#about', icon: Info, onClick: () => onInfoClick?.() },
+    { name: 'New In', href: '#new-arrivals', icon: Sparkles, onClick: () => onSectionNavigate?.('new-arrivals') },
+    { name: 'Women', href: '#collections', icon: Users, onClick: () => onNavigateToCategory?.('Dresses') },
+    { name: 'Men', href: '#collections', icon: UserCheck, onClick: () => onNavigateToCategory?.('Casual') },
+    { name: 'Accessories', href: '#collections', icon: ShoppingBag, onClick: () => onNavigateToCategory?.('Accessories') },
+    { name: 'Sale', href: '#bestsellers', icon: Tag, onClick: () => onNavigateToCategory?.('All') },
+    { name: 'About', href: '#story', icon: Info, onClick: () => onInfoClick?.() },
   ];
 
   return (
@@ -53,18 +56,19 @@ const Header: React.FC<HeaderProps> = ({ onSearch, cartItemCount = 0, onProfileC
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden lg:flex items-center space-x-1">
             {navItems.map((item) => {
               const IconComponent = item.icon;
               return (
                 <button
                   key={item.name}
                   onClick={item.onClick}
-                  className="p-2 rounded-md text-foreground hover:text-primary hover:bg-muted transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:text-primary hover:bg-muted transition-colors"
                   title={item.name}
                   aria-label={item.name}
                 >
-                  <IconComponent className="h-5 w-5" />
+                  <IconComponent className="h-4 w-4" />
+                  <span>{item.name}</span>
                 </button>
               );
             })}

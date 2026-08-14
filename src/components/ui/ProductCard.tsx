@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ShoppingCart, Eye, Heart, ExternalLink } from 'lucide-react';
-import { ImageCarousel } from './ImageCarousel';
+import { Star, ShoppingCart, Eye, Heart, ExternalLink, Sparkles } from 'lucide-react';
 import { getTrustpilotProductRating } from '../../utils/trustpilot';
 import type { Product } from '../../App';
 
@@ -88,11 +87,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     onToggleWishlist?.(product);
   };
 
-  // Ensure we have valid images array
-  const productImages = product.images && product.images.length > 0 
-    ? product.images 
-    : ['/images/placeholder-product.svg']; // Fallback SVG image
-
+  // We now use static UI blocks instead of product images
+  const getGradientForCategory = (category: string) => {
+    switch (category) {
+      case 'Dresses': return 'bg-gradient-to-tr from-pink-400 to-purple-600';
+      case 'Shoes': return 'bg-gradient-to-bl from-purple-500 to-indigo-500';
+      case 'Accessories': return 'bg-gradient-to-br from-rose-400 to-pink-600';
+      case 'Casual': return 'bg-gradient-to-r from-fuchsia-500 to-pink-500';
+      case 'Outwear': return 'bg-gradient-to-tl from-purple-600 to-rose-400';
+      case 'Party': return 'bg-gradient-to-t from-pink-500 to-purple-500';
+      default: return 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-400';
+    }
+  };
   // Color mapping for beautiful color display
   const getColorClass = (color: string) => {
     const colorLower = color.toLowerCase();
@@ -125,16 +131,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       `}
       onClick={handleViewDetails}
     >
-      {/* Image Section - Aspect ratio controlled for consistency */}
-      <div className="relative w-full aspect-[3/4] flex-shrink-0">
-        {/* Image Carousel fills the container, maintaining aspect ratio */}
-        <ImageCarousel
-          images={productImages}
-          alt={product.name}
-          showNavigation={productImages.length > 1}
-          className="rounded-t-lg h-full w-full object-cover"
-        />
-
+      {/* Static Aesthetic Section - Replaces Image Carousel */}
+      <div className={`relative w-full aspect-[3/4] flex-shrink-0 flex items-center justify-center overflow-hidden rounded-t-lg ${getGradientForCategory(product.category)}`}>
+        {/* Subtle overlay pattern/glass effect */}
+        <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]"></div>
+        
+        {/* Typographic center piece */}
+        <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center transform transition-transform group-hover:scale-110 duration-700">
+           <Sparkles className="w-8 h-8 text-white/70 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+           <span className="text-white/90 text-xs font-bold tracking-[0.2em] uppercase mb-2 drop-shadow-sm">{product.category || 'Collection'}</span>
+           <h3 className="text-white text-3xl font-black leading-tight drop-shadow-md">
+             {product.name.split(' ').slice(0, 2).join(' ')}
+           </h3>
+        </div>
         {/* Overlay Badges */}
         <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
           {/* Discount Badge - Theme compatible */}
