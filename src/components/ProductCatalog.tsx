@@ -148,88 +148,99 @@ export function ProductCatalog({
   };
 
   return (
-    <div className="container mx-auto px-6 py-6 pb-24">
-      {/* Header with Filters Toggle */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            {selectedCategory === 'All' ? 'All Products' : selectedCategory}
-          </h2>
-          <p className="text-muted-foreground">
-            {filteredProducts.length} products found
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* View Toggle */}
-          <div className="border rounded-lg p-1">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
+    <div className="bg-[#f4f1eb] min-h-screen px-4 py-8 pb-32">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header with Filters Toggle */}
+        <div className="flex flex-col mb-8 gap-4">
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-4xl md:text-5xl font-black text-[#111] tracking-tighter">
+              {selectedCategory === 'All' ? (
+                <>The <em>Edit</em></>
+              ) : (
+                <>{selectedCategory} <em>Edit</em></>
+              )}
+            </h2>
+            <span className="text-xs font-semibold text-[#111]/40 tracking-widest uppercase">
+              {filteredProducts.length} Pieces
+            </span>
           </div>
 
-          {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-2 border rounded-md bg-background text-sm"
-          >
-            <option value="featured">Featured</option>
-            <option value="newest">Newest First</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="rating">Highest Rated</option>
-          </select>
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-3 flex-wrap border-t border-[#111]/10 pt-4 mt-2">
+            
+            {/* Filter Toggle */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+                showFilters 
+                  ? 'bg-[#111] text-white' 
+                  : 'bg-white/50 text-[#111] hover:bg-white border border-[#111]/10'
+              }`}
+            >
+              <Filter className="h-3 w-3" />
+              Filter
+            </button>
 
-          {/* Filter Toggle */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className={showFilters ? 'bg-primary/10' : ''}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
+            {/* Sort */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="appearance-none bg-white/50 hover:bg-white border border-[#111]/10 text-[#111] text-xs font-bold uppercase tracking-wider px-4 py-2 pr-8 rounded-full outline-none transition-colors cursor-pointer"
+              >
+                <option value="featured">Featured</option>
+                <option value="newest">Newest</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="rating">Top Rated</option>
+              </select>
+              <SortAsc className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-[#111]/50 pointer-events-none" />
+            </div>
+            
+            {/* View Toggle (Desktop only) */}
+            <div className="hidden md:flex bg-white/50 border border-[#111]/10 rounded-full p-1 ml-auto">
+              <button
+                className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-[#111] text-white' : 'text-[#111]/50 hover:text-[#111]'}`}
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid className="h-3 w-3" />
+              </button>
+              <button
+                className={`p-1.5 rounded-full transition-colors ${viewMode === 'list' ? 'bg-[#111] text-white' : 'text-[#111]/50 hover:text-[#111]'}`}
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="mb-8 p-6 bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-[#111]/5 animate-in slide-in-from-top-2 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Price Range */}
               <div>
-                <label className="font-medium mb-3 block">Price Range</label>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#111]/50 mb-4 block">Price Range</label>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#111]/40 text-sm">R</span>
+                    <input
                       type="number"
-                      placeholder="Min"
                       value={priceRange[0]}
                       onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                      className="w-20"
+                      className="w-full bg-[#f4f1eb] border-none rounded-xl py-2.5 pl-8 pr-3 text-sm font-semibold text-[#111] outline-none focus:ring-2 focus:ring-[#111]/10"
                     />
-                    <span className="self-center">-</span>
-                    <Input
+                  </div>
+                  <span className="text-[#111]/30 font-bold">-</span>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#111]/40 text-sm">R</span>
+                    <input
                       type="number"
-                      placeholder="Max"
                       value={priceRange[1]}
                       onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      className="w-20"
+                      className="w-full bg-[#f4f1eb] border-none rounded-xl py-2.5 pl-8 pr-3 text-sm font-semibold text-[#111] outline-none focus:ring-2 focus:ring-[#111]/10"
                     />
                   </div>
                 </div>
@@ -237,7 +248,7 @@ export function ProductCatalog({
 
               {/* Colors */}
               <div>
-                <label className="font-medium mb-3 block">Colors</label>
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#111]/50 mb-4 block">Colors</label>
                 <div className="flex flex-wrap gap-2">
                   {availableColors.slice(0, 8).map((color) => (
                     <button
@@ -247,10 +258,10 @@ export function ProductCatalog({
                           ? prev.filter(c => c !== color)
                           : [...prev, color]
                       )}
-                      className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                      className={`px-4 py-2 text-xs font-semibold rounded-full transition-all duration-200 ${
                         selectedColors.includes(color)
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background hover:bg-muted border-border'
+                          ? 'bg-[#111] text-white shadow-md shadow-black/10'
+                          : 'bg-[#f4f1eb] text-[#111]/70 hover:bg-[#e8e4db]'
                       }`}
                     >
                       {color}
@@ -258,40 +269,47 @@ export function ProductCatalog({
                   ))}
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="flex items-end gap-2">
-                <Button onClick={clearFilters} variant="outline">
-                  <X className="h-4 w-4 mr-2" />
-                  Clear All
-                </Button>
-                <Button onClick={() => setShowFilters(false)}>
-                  Apply
-                </Button>
-              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Products Grid/List */}
-      {filteredProducts.length === 0 ? (
-        <div className="text-center py-12">
-          <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">No products found</h3>
-          <p className="text-muted-foreground mb-4">
-            Try adjusting your search or filter criteria
-          </p>
-          <Button onClick={clearFilters}>
-            Clear all filters
-          </Button>
-        </div>
-      ) : (
-        <div className={`grid gap-6 ${
-          viewMode === 'grid'
-            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-            : 'grid-cols-1'
-        }`}>
+            {/* Actions */}
+            <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-[#111]/5">
+              <button 
+                onClick={clearFilters}
+                className="text-xs font-bold uppercase tracking-wider text-[#111]/50 hover:text-[#111] transition-colors"
+              >
+                Clear
+              </button>
+              <button 
+                onClick={() => setShowFilters(false)}
+                className="bg-[#111] text-white text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-full hover:bg-black transition-colors shadow-md shadow-black/20"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Products Grid/List */}
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-24 bg-white/40 rounded-3xl border border-[#111]/5">
+            <Search className="h-12 w-12 text-[#111]/20 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-[#111] mb-2 tracking-tight">Nothing found</h3>
+            <p className="text-sm text-[#111]/50 mb-6">
+              Try adjusting your search or filters to find what you're looking for.
+            </p>
+            <button 
+              onClick={clearFilters}
+              className="bg-[#111] text-white text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-full hover:bg-black transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+        ) : (
+          <div className={`grid gap-4 md:gap-6 ${
+            viewMode === 'grid'
+              ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+              : 'grid-cols-1'
+          }`}>
           {filteredProducts.map((product) => {
             // Debug product rendering in catalog
             console.log('🛍️ ProductCatalog: Rendering product:', {
@@ -464,12 +482,13 @@ export function ProductCatalog({
 
       {/* Load More Button */}
       {filteredProducts.length > 12 && (
-        <div className="text-center mt-8">
-          <Button variant="outline" size="lg">
-            Load More Products
-          </Button>
+        <div className="text-center mt-12">
+          <button className="bg-transparent border border-[#111]/20 text-[#111] text-xs font-bold uppercase tracking-wider px-8 py-3 rounded-full hover:bg-[#111]/5 transition-colors">
+            Load More Pieces
+          </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

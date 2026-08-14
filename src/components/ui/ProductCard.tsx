@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ShoppingCart, Eye, Heart, ExternalLink, Sparkles } from 'lucide-react';
+import { Star, ShoppingCart, Eye, Heart } from 'lucide-react';
 import { getTrustpilotProductRating } from '../../utils/trustpilot';
+import { ProductImage } from './responsive-image';
 import type { Product } from '../../App';
 
 interface ProductCardProps {
   product: Product;
-  layout?: 'compact' | 'enhanced'; // New layout options
+  layout?: 'compact' | 'enhanced';
   showQuickActions?: boolean;
   onAddToCart?: (product: Product) => void;
   onViewDetails?: (product: Product) => void;
@@ -13,7 +14,6 @@ interface ProductCardProps {
   className?: string;
 }
 
-// Enhanced currency formatting function for South African Rand
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-ZA', {
     style: 'currency',
@@ -23,18 +23,6 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-/**
- * Enhanced Product Card Component
- *
- * Features:
- * - Tall 3:1 aspect ratio with 80% image space for better product visibility
- * - Multi-image carousel support
- * - Smart layout optimization
- * - Clean pricing display with South African Rand formatting
- * - Quick action buttons
- * - Beautiful color display
- * - Responsive design with proper spacing
- */
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   layout = 'enhanced',
@@ -44,14 +32,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   className = ''
 }) => {
-  // State for Trustpilot rating
   const [trustpilotRating, setTrustpilotRating] = useState<{
     rating: number;
     reviewCount: number;
     trustScore: number;
   } | null>(null);
 
-  // Load Trustpilot rating on component mount
   useEffect(() => {
     const loadRating = async () => {
       try {
@@ -61,25 +47,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         console.error('Failed to load Trustpilot rating:', error);
       }
     };
-
     loadRating();
   }, [product.id]);
 
-  // Calculate discount percentage for display - only show if there's an actual discount
-  const discountPercentage = product.originalPrice &&
-                            product.originalPrice > product.price &&
-                            product.originalPrice !== product.price
+  const discountPercentage = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
-  // Handle action clicks without debug logging
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAddToCart?.(product);
-  };
-
-  const handleViewDetails = () => {
-    onViewDetails?.(product);
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
@@ -87,218 +64,131 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     onToggleWishlist?.(product);
   };
 
-  // We now use static UI blocks instead of product images
-  const getGradientForCategory = (category: string) => {
-    switch (category) {
-      case 'Dresses': return 'bg-gradient-to-tr from-pink-400 to-purple-600';
-      case 'Shoes': return 'bg-gradient-to-bl from-purple-500 to-indigo-500';
-      case 'Accessories': return 'bg-gradient-to-br from-rose-400 to-pink-600';
-      case 'Casual': return 'bg-gradient-to-r from-fuchsia-500 to-pink-500';
-      case 'Outwear': return 'bg-gradient-to-tl from-purple-600 to-rose-400';
-      case 'Party': return 'bg-gradient-to-t from-pink-500 to-purple-500';
-      default: return 'bg-gradient-to-br from-purple-500 via-pink-500 to-rose-400';
-    }
-  };
-  // Color mapping for beautiful color display
   const getColorClass = (color: string) => {
     const colorLower = color.toLowerCase();
     switch (colorLower) {
       case 'black': return 'bg-black border-gray-300';
-      case 'white': return 'bg-white border-gray-400';
-      case 'gray': case 'grey': return 'bg-gray-400 border-gray-500';
-      case 'navy': return 'bg-blue-900 border-blue-800';
-      case 'brown': return 'bg-amber-800 border-amber-700';
-      case 'beige': return 'bg-amber-100 border-amber-200';
-      case 'pink': return 'bg-pink-400 border-pink-500';
-      case 'blue': return 'bg-blue-500 border-blue-600';
-      case 'red': return 'bg-red-500 border-red-600';
-      case 'green': return 'bg-green-500 border-green-600';
-      case 'yellow': return 'bg-yellow-400 border-yellow-500';
-      case 'purple': return 'bg-purple-500 border-purple-600';
-      case 'orange': return 'bg-orange-500 border-orange-600';
-      default: return 'bg-gradient-to-br from-purple-400 to-pink-400 border-purple-300';
+      case 'white': return 'bg-white border-gray-300';
+      case 'gray': case 'grey': return 'bg-gray-400 border-gray-400';
+      case 'navy': return 'bg-blue-900 border-blue-900';
+      case 'brown': return 'bg-amber-800 border-amber-800';
+      case 'beige': return 'bg-[#f5f5dc] border-[#e8e8d0]';
+      case 'pink': return 'bg-pink-400 border-pink-400';
+      case 'blue': return 'bg-blue-500 border-blue-500';
+      case 'red': return 'bg-red-500 border-red-500';
+      case 'green': return 'bg-green-500 border-green-500';
+      case 'yellow': return 'bg-yellow-400 border-yellow-400';
+      case 'purple': return 'bg-purple-500 border-purple-500';
+      case 'orange': return 'bg-orange-500 border-orange-500';
+      default: return 'bg-gradient-to-br from-purple-400 to-pink-400';
     }
   };
 
   return (
     <div 
-      className={`
-        bg-background rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-        cursor-pointer group overflow-hidden border border-border dark:border-border/50 
-        hover:border-primary/20 dark:hover:border-primary/30
-        flex flex-col
-        ${className}
-      `}
-      onClick={handleViewDetails}
+      className={`relative rounded-[1.5rem] overflow-hidden cursor-pointer group bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_48px_rgba(0,0,0,0.12)] transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${className}`}
+      onClick={() => onViewDetails?.(product)}
+      style={{ aspectRatio: '3/4' }}
     >
-      {/* Static Aesthetic Section - Replaces Image Carousel */}
-      <div className={`relative w-full aspect-[3/4] flex-shrink-0 flex items-center justify-center overflow-hidden rounded-t-lg ${getGradientForCategory(product.category)}`}>
-        {/* Subtle overlay pattern/glass effect */}
-        <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[radial-gradient(circle_at_center,_white_0%,_transparent_100%)]"></div>
-        <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]"></div>
-        
-        {/* Typographic center piece */}
-        <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center transform transition-transform group-hover:scale-110 duration-700">
-           <Sparkles className="w-8 h-8 text-white/70 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-           <span className="text-white/90 text-xs font-bold tracking-[0.2em] uppercase mb-2 drop-shadow-sm">{product.category || 'Collection'}</span>
-           <h3 className="text-white text-3xl font-black leading-tight drop-shadow-md">
-             {product.name.split(' ').slice(0, 2).join(' ')}
-           </h3>
-        </div>
-        {/* Overlay Badges */}
-        <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
-          {/* Discount Badge - Theme compatible */}
-          {discountPercentage > 0 && (
-            <span className="bg-rose-500 dark:bg-rose-600 text-white text-xs px-2.5 py-1 rounded-full font-medium shadow-md">
-              -{discountPercentage}%
-            </span>
-          )}
-        </div>
+      {/* Image with zoom effect */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#f4f1eb]">
+        <ProductImage
+          images={product.images}
+          name={product.name}
+          className="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-105"
+        />
+      </div>
 
-        {/* Quick Actions - Enhanced visibility and theme compatible */}
-        {showQuickActions && (
-          <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 
-                        opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button
-              onClick={handleToggleWishlist}
-              className="bg-background dark:bg-card bg-opacity-90 dark:bg-opacity-90 hover:bg-opacity-100 
-                       p-2 rounded-full shadow-md transition-all duration-200
-                       hover:scale-110 focus:outline-none focus:ring-2 focus:ring-rose-500"
-              aria-label="Add to wishlist"
-            >
-              <Heart className="h-4 w-4 text-foreground hover:text-rose-500" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewDetails();
-              }}
-              className="bg-background dark:bg-card bg-opacity-90 dark:bg-opacity-90 hover:bg-opacity-100 
-                       p-2 rounded-full shadow-md transition-all duration-200
-                       hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Quick view"
-            >
-              <Eye className="h-4 w-4 text-foreground hover:text-blue-500" />
-            </button>
-          </div>
+      {/* Gradient overlay for text legibility */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none opacity-80" />
+
+      {/* Badges */}
+      <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
+        {discountPercentage > 0 && (
+          <span className="bg-white/90 backdrop-blur-md text-[#111] text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow-sm">
+            Sale
+          </span>
+        )}
+        {!product.inStock && (
+          <span className="bg-black/70 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow-sm">
+            Sold Out
+          </span>
         )}
       </div>
 
-      {/* Content Section - Increased to 104px with better spacing and theme support */}
-      <div className="p-4 flex-grow flex flex-col justify-between space-y-3">
-        <div className="space-y-2">
-          {/* Product Category - Theme compatible */}
-          {product.category && (
-            <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-              {product.category}
+      {/* Quick Actions overlay */}
+      {showQuickActions && (
+        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-x-2 group-hover:translate-x-0">
+          <button
+            onClick={handleToggleWishlist}
+            className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white hover:text-rose-500 p-2 rounded-full transition-all duration-200"
+            aria-label="Add to wishlist"
+          >
+            <Heart className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleAddToCart}
+            className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white hover:text-[#111] p-2 rounded-full transition-all duration-200"
+            aria-label="Add to cart"
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Product Info - Slides up on hover */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ease-out z-10">
+        
+        {/* Category & Rating */}
+        <div className="flex items-center justify-between mb-1 opacity-80">
+          <span className="text-[10px] text-white/90 uppercase tracking-[0.1em] font-semibold">
+            {product.category}
+          </span>
+          <div className="flex items-center gap-1">
+            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+            <span className="text-[10px] text-white/90 font-medium">
+              {trustpilotRating?.rating || product.rating}
             </span>
-          )}
-
-          {/* Product Name - Theme compatible */}
-          <h3 className="font-semibold text-foreground text-sm line-clamp-2 leading-tight">
-            {product.name}
-          </h3>
-
-          {/* Enhanced Trustpilot Rating Display */}
-          {(trustpilotRating || product.rating) && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-3.5 w-3.5 ${
-                        i < Math.floor(trustpilotRating?.rating || product.rating || 0) 
-                          ? 'text-yellow-400 fill-current' 
-                          : 'text-gray-300 dark:text-gray-600'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-muted-foreground ml-1">
-                  {trustpilotRating ? (
-                    <>({trustpilotRating.reviewCount} reviews)</>
-                  ) : product.reviews && product.reviews.length > 0 ? (
-                    <>({product.reviews.length})</>
-                  ) : (
-                    <>(0)</>
-                  )}
-                </span>
-              </div>
-              
-              {/* Trustpilot Trust Score Badge */}
-              {trustpilotRating && (
-                <div className="flex items-center gap-1 bg-gradient-to-r from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-800/20 px-2 py-1 rounded-full">
-                  <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-[8px] font-bold">T</span>
-                  </div>
-                  <span className="text-xs font-medium text-green-700 dark:text-green-300">
-                    {trustpilotRating.trustScore.toFixed(1)}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Beautiful Color Display - Theme compatible */}
-          {product.colors && product.colors.length > 0 && (
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground mr-1">Colors:</span>
-              <div className="flex gap-1">
-                {product.colors.slice(0, 5).map((color, index) => (
-                  <div
-                    key={index}
-                    className={`w-4 h-4 rounded-full border-2 ${getColorClass(color)} 
-                               shadow-sm hover:scale-110 transition-transform cursor-pointer`}
-                    title={color}
-                  />
-                ))}
-                {product.colors.length > 5 && (
-                  <span className="text-xs text-muted-foreground self-center ml-1">
-                    +{product.colors.length - 5}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Price and Add to Cart Section - Enhanced currency formatting */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-foreground text-lg">
+        {/* Name */}
+        <h3 className="text-white text-[1.1rem] font-bold leading-[1.15] mb-2 drop-shadow-sm tracking-tight line-clamp-2">
+          {product.name}
+        </h3>
+
+        {/* Price & Colors */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="text-white font-bold tracking-tight">
               {formatCurrency(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-muted-foreground line-through">
+              <span className="text-white/60 text-xs line-through">
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
           </div>
-
-          {/* Add to Cart Button - Enhanced and consistent with site theme */}
-          <button
-            onClick={handleAddToCart}
-            className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white 
-                     text-white dark:text-slate-900 border-2 border-slate-900 dark:border-slate-100
-                     p-2 rounded-full transition-all duration-200
-                     hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 
-                     shadow-md hover:shadow-lg"
-            aria-label="Add to cart"
-          >
-            <ShoppingCart className="h-4 w-4 text-white dark:text-slate-900" />
-          </button>
+          
+          {/* Swatches */}
+          {product.colors && product.colors.length > 0 && (
+            <div className="flex -space-x-1">
+              {product.colors.slice(0, 3).map((color, idx) => (
+                <div
+                  key={idx}
+                  className={`w-3.5 h-3.5 rounded-full border border-white/40 ${getColorClass(color)}`}
+                  title={color}
+                />
+              ))}
+              {product.colors.length > 3 && (
+                <div className="w-3.5 h-3.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 flex items-center justify-center text-[8px] font-bold text-white">
+                  +
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Debug Info - Development only - Removed fixed height */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute bottom-0 left-0 bg-black bg-opacity-75 text-white text-xs p-1 rounded-tr-md z-30">
-          ID: {product.id} | Layout: {layout} | Aspect: 3/4
-        </div>
-      )}
     </div>
   );
 };
-
-export default ProductCard;

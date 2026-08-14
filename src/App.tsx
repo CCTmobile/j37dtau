@@ -543,18 +543,20 @@ function AppContent() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header
-        onSearch={setSearchQuery}
-        onProfileClick={handleProfileClick}
-        onNavigateToCategory={navigateToCategory}
-        onSectionNavigate={navigateToHomeSection}
-        onInfoClick={() => {
-          setInfoPage('about');
-          setCurrentPage('info');
-        }}
-      />
+      {currentPage !== 'home' && (
+        <Header
+          onSearch={setSearchQuery}
+          onProfileClick={handleProfileClick}
+          onNavigateToCategory={navigateToCategory}
+          onSectionNavigate={navigateToHomeSection}
+          onInfoClick={() => {
+            setInfoPage('about');
+            setCurrentPage('info');
+          }}
+        />
+      )}
 
-      <main className="flex-1 pb-28 md:pb-4">
+      <main className={`flex-1 ${currentPage === 'home' ? 'pt-14' : 'pb-32 md:pb-24'}`}>
         {renderCurrentPage()}
       </main>
 

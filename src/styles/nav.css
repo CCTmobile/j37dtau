@@ -1,0 +1,169 @@
+/* ═══════════════════════════════════════════════════════
+   NAVIGATION — BottomNav Design System
+═══════════════════════════════════════════════════════ */
+
+/* ── Home page: dark translucent top bar ────────────── */
+.nav-home-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.35rem 0.25rem;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-home-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.42);
+  transition: color 0.2s;
+}
+
+.nav-home-icon-wrap[data-active="true"] { color: #fff; }
+
+.nav-home-label {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.35);
+  transition: color 0.2s, font-weight 0.2s;
+  white-space: nowrap;
+}
+
+.nav-home-label[data-active="true"] {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ── Floating pill bottom nav (all inner pages) ─────── */
+.nav-float-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem 0.85rem;
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .nav-float-wrap { padding: 0; }
+}
+
+.nav-float-pill {
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 2rem;
+  padding: 0.35rem 0.5rem;
+  gap: 0.1rem;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.13),
+    0 2px 8px rgba(0,0,0,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  width: 100%;
+  max-width: 430px;
+}
+
+@media (max-width: 480px) {
+  .nav-float-pill {
+    max-width: 100%;
+    border-radius: 1.25rem 1.25rem 0 0;
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+    padding: 0.45rem 0.25rem 0.6rem;
+    box-shadow:
+      0 -1px 0 rgba(0,0,0,0.06),
+      0 -12px 28px rgba(0,0,0,0.07);
+  }
+}
+
+.nav-float-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.5rem 0.3rem 0.4rem;
+  gap: 0.22rem;
+  background: none;
+  border: none;
+  border-radius: 1.5rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s, transform 0.1s;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.nav-float-btn:active { transform: scale(0.91); }
+
+.nav-float-btn:hover:not(.nav-float-btn-active) {
+  background: rgba(0,0,0,0.05);
+}
+
+.nav-float-btn-active {
+  background: #111;
+}
+
+.nav-float-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  color: rgba(0,0,0,0.42);
+  transition: color 0.2s;
+}
+
+.nav-float-btn-active .nav-float-icon-wrap { color: #fff; }
+
+.nav-float-label {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: rgba(0,0,0,0.38);
+  white-space: nowrap;
+  z-index: 1;
+  transition: color 0.2s, font-weight 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.nav-float-btn-active .nav-float-label {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ── Cart badge ──────────────────────────────────────── */
+.nav-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.45rem;
+  background: #f97316;
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.14rem 0.28rem;
+  border-radius: 999px;
+  min-width: 0.9rem;
+  text-align: center;
+  border: 1.5px solid rgba(255,255,255,0.9);
+  pointer-events: none;
+}
+
+.nav-badge-dark { border-color: #111; }

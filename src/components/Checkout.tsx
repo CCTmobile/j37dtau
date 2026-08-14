@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
 import { Checkbox } from './ui/checkbox';
-import { ArrowLeft, CreditCard, Sparkles } from 'lucide-react';
+import { ArrowLeft, CreditCard, Sparkles, Lock, ShieldCheck } from 'lucide-react';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './ui/accordion';
 import { toast } from 'sonner';
 import { createOrderFromCart, createGuestOrder } from '../utils/supabase/client';
 import { trackPurchaseCompletion } from '../utils/trustpilot';
@@ -208,12 +209,11 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            <Accordion type="single" collapsible defaultValue="shipping" className="w-full space-y-4">
             {/* Shipping Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Shipping Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <AccordionItem value="shipping" className="border bg-card text-card-foreground rounded-lg shadow-sm px-6">
+              <AccordionTrigger className="hover:no-underline py-4 text-xl font-semibold">1. Shipping Information</AccordionTrigger>
+              <AccordionContent className="pt-0 pb-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">First Name</Label>
@@ -310,16 +310,14 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </AccordionContent>
+            </AccordionItem>
 
             {/* Guest Account Creation Option */}
             {!user && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Options</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <AccordionItem value="account" className="border bg-card text-card-foreground rounded-lg shadow-sm px-6">
+                <AccordionTrigger className="hover:no-underline py-4 text-xl font-semibold">2. Account Options (Optional)</AccordionTrigger>
+                <AccordionContent className="pt-0 pb-6 space-y-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="createAccount"
@@ -357,16 +355,14 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </AccordionContent>
+              </AccordionItem>
             )}
 
             {/* Payment Method */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Method</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <AccordionItem value="payment" className="border bg-card text-card-foreground rounded-lg shadow-sm px-6">
+              <AccordionTrigger className="hover:no-underline py-4 text-xl font-semibold">{user ? "2" : "3"}. Payment Method</AccordionTrigger>
+              <AccordionContent className="pt-0 pb-6 space-y-4">
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
                   <div className="flex items-center space-x-2 p-3 border rounded-lg">
                     <RadioGroupItem value="bank-transfer" id="bank-transfer" />
@@ -441,8 +437,9 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </AccordionContent>
+            </AccordionItem>
+            </Accordion>
           </div>
 
           {/* Order Summary */}
@@ -525,9 +522,19 @@ export function Checkout({ items, user, onOrderComplete, onBack }: CheckoutProps
                   <span>R{total.toFixed(2)}</span>
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
-                  {isProcessing ? 'Processing...' : `Place Order - R${total.toFixed(2)}`}
+                <Button type="submit" className="w-full relative shadow-lg shadow-primary/20" size="lg" disabled={isProcessing}>
+                  {isProcessing ? 'Processing...' : (
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      Place Secure Order - R{total.toFixed(2)}
+                    </div>
+                  )}
                 </Button>
+                
+                <div className="flex justify-center gap-4 py-2 mt-2">
+                  <div className="flex items-center text-xs font-medium text-muted-foreground"><ShieldCheck className="w-4 h-4 mr-1 text-green-500" /> SSL Secure</div>
+                  <div className="flex items-center text-xs font-medium text-muted-foreground"><Lock className="w-4 h-4 mr-1 text-green-500" /> Encrypted Payment</div>
+                </div>
 
                 <p className="text-xs text-muted-foreground text-center">
                   By placing your order, you agree to our Terms & Conditions and Privacy Policy.

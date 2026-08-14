@@ -7,6 +7,7 @@ import { Plus, Minus, Trash2, ShoppingBag, Tag, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CartItem } from '../App';
 import { BottomSpacer } from './ui/bottom-spacer';
+import { useProducts } from '../contexts/ProductContext';
 
 interface CartProps {
   items: CartItem[];
@@ -19,6 +20,7 @@ interface CartProps {
 export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckout, onContinueShopping }: CartProps) {
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number } | null>(null);
+  const { products } = useProducts();
 
   // Calculate order totals - prices already include VAT
   const productsTotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
@@ -61,9 +63,15 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
           <p className="text-muted-foreground mb-6">
             Looks like you haven't added anything to your cart yet.
           </p>
-          <Button onClick={onContinueShopping || (() => window.history.back())}>
+          <Button onClick={onContinueShopping || (() => window.history.back())} className="w-full sm:w-auto">
             Continue Shopping
           </Button>
+          <div className="grid grid-cols-2 gap-3 mt-6">
+             <Button variant="outline" onClick={onContinueShopping || (() => window.history.back())} className="text-xs py-1 h-8">Shop Dresses</Button>
+             <Button variant="outline" onClick={onContinueShopping || (() => window.history.back())} className="text-xs py-1 h-8">Shop New Arrivals</Button>
+             <Button variant="outline" onClick={onContinueShopping || (() => window.history.back())} className="text-xs py-1 h-8">Shop Accessories</Button>
+             <Button variant="outline" onClick={onContinueShopping || (() => window.history.back())} className="text-xs py-1 h-8">Shop Sale</Button>
+          </div>
         </div>
       </div>
     );
@@ -229,6 +237,23 @@ export function Cart({ items, onUpdateQuantity, onRemoveItem, onProceedToCheckou
           </Card>
         </div>
       </div>
+
+      {/* Recommended Products */}
+      <div className="mt-16 pt-8 border-t">
+        <h2 className="text-xl font-bold mb-6">You might also like</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           {products.slice(4, 8).map(product => (
+             <div key={product.id} className="group border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow">
+               <div className="aspect-[4/5] bg-gradient-to-br from-pink-400 to-purple-500 rounded-md mb-3 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                  <Sparkles className="text-white/50 w-8 h-8" />
+               </div>
+               <h3 className="font-medium text-sm truncate">{product.name}</h3>
+               <p className="font-bold text-sm mt-1">R{product.price}</p>
+             </div>
+           ))}
+        </div>
+      </div>
+      
       <BottomSpacer />
     </div>
   );
