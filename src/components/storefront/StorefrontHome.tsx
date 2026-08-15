@@ -9,10 +9,10 @@ import '../../styles/home.css';
 const CATEGORIES = ['Dresses', 'Casual', 'Shoes', 'Outwear', 'Party', 'Accessories'];
 
 const FEATURED = [
-  { img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=700', name: 'Jackets', count: 361, category: 'Outwear', tall: true },
-  { img: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=700', name: 'Shirts', count: 174, category: 'Casual', tall: false },
-  { img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=700', name: 'Trousers', count: 89, category: 'Casual', tall: false },
-  { img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=700', name: 'Accessories', count: 42, category: 'Accessories', tall: true },
+  { img: '/images/rosemama003.png', name: 'Jackets', count: 361, category: 'Outwear', tall: true },
+  { img: '/images/rosemama004.png', name: 'Shirts', count: 174, category: 'Casual', tall: false },
+  { img: '/images/rosemama005.png', name: 'Trousers', count: 89, category: 'Casual', tall: false },
+  { img: '/images/rosemama006.png', name: 'Accessories', count: 42, category: 'Accessories', tall: true },
 ];
 
 const AVATARS = [
@@ -71,7 +71,7 @@ export function StorefrontHome({
           <div className="home-hero-image-col">
             <div className="home-hero-img-wrap">
               <img
-                src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=900"
+                src="/images/rosemama001.png"
                 alt="Fashion Model"
                 className="home-hero-img"
               />
@@ -144,7 +144,7 @@ export function StorefrontHome({
 
             <div className="home-story-img-wrap">
               <img
-                src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=700"
+                src="/images/rosemama002.png"
                 alt="Featured collection"
                 className="home-story-img"
               />
